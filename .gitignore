@@ -1,0 +1,14 @@
+# Python environment and caches
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+
+# Raw data: ignore big files, keep the folder itself tracked via .gitkeep
+data/raw/*
+!data/raw/.gitkeep
+
+# Models and figures are tracked on purpose (small). If one gets very large,
+# add its path here.
