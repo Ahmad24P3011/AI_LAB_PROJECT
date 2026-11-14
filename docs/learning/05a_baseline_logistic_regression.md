@@ -4,15 +4,21 @@
 
 **Files created or changed:**
 - `src/modeling_utils.py`: shared tools (data slices with test-set guards, metrics, paired bootstrap, feature sets, bookmaker probabilities)
-- `src/logreg.py`: baselines, Logistic Regression, tuning, the experiments, figures, final model
-- `src/check_models.py`: the checks (guards, time order, probabilities, hand computations, saved model)
-- `data/processed/feature_sets.json`: the three feature sets FULL, REDUCED and SMALL (frozen before any model result)
-- `reports/ablations_logreg.csv`: every experiment with its numbers and decision
-- `reports/val_predictions_5a.csv`: validation probabilities of the models and baselines (for Stage 6)
-- `models/logreg.joblib`, `models/logreg_config.json`: the final model and its configuration
-- `reports/figures/15_logreg_validation_curve.png`, `16_confusion_matrix.png`, `17_calibration.png`, `18_coefficients.png`
-- `docs/decisions.md`: new decisions log (created in this stage)
+- `src/logreg.py`: the ORIGINAL analysis (v1 feature sets): baselines, Logistic Regression, tuning, the experiments, figures
+- `src/amendment_5a.py`: the amendment after review: drift table, primary (ELO2) and reference (FULL) models, per-season home-win check, saving the final models
+- `src/check_models.py`: the checks (guards, time order, frozen v1 hash, v2 amendment, probabilities, hand computations, saved models, drift table)
+- `data/processed/feature_sets_v1.json`: the original three feature sets FULL, REDUCED and SMALL (frozen before any model result, never changed)
+- `data/processed/feature_sets_v2.json`: the amendment (post-hoc): FULL (33, reference), REDUCED (24), ELO2 (2, primary), with date and reason
+- `reports/ablations_logreg.csv`: every v1 experiment with its numbers and decision (the record of what was found)
+- `reports/drift_validation.csv`: the drift table for all 34 features
+- `reports/amendment_5a_results.csv`: C tuning for ELO2 and FULL
+- `reports/val_predictions_5a.csv` (v1) and `reports/val_predictions_5a_v2.csv` (amendment): validation probabilities of the models and baselines (for Stage 6)
+- `models/logreg.joblib`, `models/logreg_config.json`: the PRIMARY model (ELO2); `models/logreg_full_reference.joblib` and its config: the FULL reference model
+- `reports/figures/15_logreg_validation_curve.png`, `16_confusion_matrix.png`, `17_calibration.png`, `18_coefficients.png` (made under the v1 analysis)
+- `docs/decisions.md`: decisions log (created in this stage, updated by the amendment)
 - `docs/learning/05a_baseline_logistic_regression.md`: this lesson
+
+> **Amendment after review (post-hoc).** After reading this lesson's first version, the team approved three changes that were driven by a diagnostic run *after* seeing validation results: the primary Logistic Regression now uses only `elo_diff` + `abs_elo_diff` (ELO2); `league_avg_goals_prev380` is removed from every classifier feature set; head-to-head features are kept only in the FULL reference set. Sections 2, 5 and 6 mark where the original (v1) text is superseded, and section 5b explains the amendment, including why these choices must be treated as post-hoc.
 
 ---
 
@@ -26,11 +32,11 @@ So far we prepared data. Now we start predicting. Before any fancy model, we nee
 2. **Three frozen feature sets** (written to a file before any model result was seen, so we could not be tempted to adjust them to look good):
    - **FULL:** all 34 features.
    - **REDUCED (27):** FULL without "redundant twins", found by a mechanical rule on the fit seasons only. Rule: always drop `away_matches_played` (identical to `home_matches_played`); then for each pair with |correlation| above 0.85, strongest first, drop the one that is on average more correlated with everything else. It dropped: `away_matches_played`, `home_gf_10`, `away_gf_10`, `away_ga_10`, `home_venue_ga`, `away_sot_for_10`, `home_sot_for_10`.
-   - **SMALL (3):** `elo_diff`, `abs_elo_diff`, `league_avg_goals_prev380`.
+   - **SMALL (3):** `elo_diff`, `abs_elo_diff`, `league_avg_goals_prev380`. (Retired in the amendment, replaced by ELO2: `elo_diff`, `abs_elo_diff`.)
 3. **Three baselines** on the 760 validation matches (table below).
 4. **A Logistic Regression**, tuned and examined (draws, calibration, coefficients).
 5. **Five experiments**, one change at a time, each judged by a noise rule.
-6. **A final model**, refit on all ten training seasons and saved, not scored on the test season.
+6. **Final models**, refit on all ten training seasons and saved, not scored on the test season. After the amendment: the primary model (ELO2) and a FULL reference model (33 features, keeps head-to-head) for Stage 6.
 
 **Baselines and the model on the validation seasons** (lower log loss is better; higher accuracy and F1 are better):
 
@@ -39,8 +45,10 @@ So far we prepared data. Now we start predicting. Before any fancy model, we nee
 | Always predict "Home win" | 43.4% | not defined | 0.202 | 1.132 | 0 |
 | Class frequencies (knows nothing) | 43.4% | 1.0675 | 0.202 | 0.646 | 0 |
 | Bookmaker (Bet365, margin removed) | 56.8% | 0.9400 | 0.422 | 0.556 | 0 |
-| Logistic Regression, FULL, C = 0.01 | 55.4% | 0.9608 | 0.409 | 0.569 | 1 |
-| Logistic Regression, chosen (SMALL, C = 10) | 55.3% | 0.9663 | 0.407 | not shown | not shown |
+| Logistic Regression, v1 default: FULL (34 features), C = 0.01 | 55.4% | 0.9608 | 0.409 | 0.569 | 1 |
+| Logistic Regression, v1 rule result: SMALL (3 features), C = 10 (superseded) | 55.3% | 0.9663 | 0.407 | not shown | not shown |
+| **Amendment: PRIMARY, ELO2 (2 features), C = 10** | 55.4% | 0.9582 | not shown | not shown | not shown |
+| **Amendment: FULL reference (33 features, no league average), C = 0.01** | 55.5% | 0.9577 | not shown | not shown | not shown |
 
 ## 3. New concepts (explained simply)
 - **Baseline:** a deliberately simple predictor that sets the bar. "Always Home win" is right 330 times out of 760 (43.4%). "Class frequencies" says "44.8% home, 23.4% draw, 31.8% away" for every match, using fit-season proportions: it knows nothing about the teams. Its log loss, **1.0675**, is the "knows nothing" level that a real model must beat.
@@ -118,7 +126,7 @@ Default: FULL, C = 0.01, all 8 fit seasons, warm-up rows included: log loss 0.96
 | e. Warm-up rows | exclude from training | 0.9748 | 55.4% | -0.0140 [-0.0211, -0.0075] | clearly worse: keep them (but see below) |
 
 **What each concluded:**
-- *a:* the three feature sets cannot be separated: the data cannot tell 3 features from 34. This is worth knowing: **Elo alone carries almost all the signal our features have.** By the noise rule the simplest, SMALL, is chosen. (REDUCED had the lowest loss but not clearly; I flag this choice for your review.)
+- *a:* the three feature sets cannot be separated: the data cannot tell 3 features from 34. This is worth knowing: **Elo alone carries almost all the signal our features have.** By the noise rule the simplest, SMALL, was chosen in the v1 analysis. (REDUCED had the lowest loss but not clearly.) After review this was replaced by ELO2 (see section 5b).
 - *b:* dropping head-to-head helps, but the lower end of the interval is only +0.0004. With about 9 comparisons in this stage, one borderline "hit" is expected by luck alone, so this is weak evidence. It is moot for SMALL.
 - *c:* `season_no_fans` is useful: removing it is clearly worse. It lets the model treat 2020-21's different home advantage separately. Test matches all have the value 0, so for them it just means "a normal season".
 - *d:* more history is not automatically better, but too little hurts: 3 seasons are clearly worse; 5 seasons cannot be told from 8; recency weights are clearly worse here (so older seasons are still useful, which matches the persistence we saw in EDA Figure 7).
@@ -126,7 +134,53 @@ Default: FULL, C = 0.01, all 8 fit seasons, warm-up rows included: log loss 0.96
 
 **A surprise, and what it showed.** Excluding just 109 of 3,040 rows should not cost 0.014 in log loss, and the loss rose on almost every validation match, not just the warm-up ones. A diagnostic (clearly marked as *not used for any decision*) found the cause: `league_avg_goals_prev380`. In the fit seasons it has mean 2.75 and standard deviation only 0.08, but in the validation seasons the goal average over the previous 380 matches was much higher (3.05 in 2023-24 and 3.17 in 2024-25), so a typical validation value is **5.3 training standard deviations** from the training mean (maximum 6.7). The model has a tiny weight for it, but multiplied by such large standardized numbers it shifts the probabilities, and removing a few rows changes the scaler and weight slightly, which changes everything. Without that feature, excluding warm-up rows makes no difference (-0.0003 [-0.0021, +0.0015]). Also, FULL without that feature scores 0.9577 vs 0.9608, and SMALL without it (only `elo_diff` and `abs_elo_diff`) scores 0.9582 vs 0.9663. None of these passes the noise rule alone, but all lean the same way. *Lesson:* a feature whose values drift far outside what the model saw in training is dangerous for a linear model (trees are not hurt this way, since they simply stop at their last split). EDA 04 warned that scoring levels shift (3.28 goals per match in 2023-24); this is that shift showing up.
 
-**The chosen configuration** (applying the rule): SMALL features, C = 10 (a 3-feature model barely needs regularization), all seasons, no weights, warm-up rows included. Validation log loss 0.9663 and accuracy 55.3%, which is -0.0055 [-0.0163, +0.0045] versus the default: no clear difference. It was refit on all 10 training seasons (3,800 rows) and saved. It was not scored on the test season. All numbers are in `reports/ablations_logreg.csv` and the conclusions are in `docs/decisions.md`.
+**The v1 result of the rule** (superseded by the amendment in section 5b): SMALL features, C = 10, all seasons, no weights, warm-up rows included. Validation log loss 0.9663 and accuracy 55.3%, which is -0.0055 [-0.0163, +0.0045] versus the default: no clear difference. All numbers are in `reports/ablations_logreg.csv`; this file is kept unchanged as the record of what was found, and the conclusions are in `docs/decisions.md`.
+
+## 5b. Amendment after review (post-hoc, diagnostic-driven)
+
+**Read this first: these changes are post-hoc.** They were made after the team saw the validation results and the `league_avg_goals_prev380` diagnostic. That means the validation scores can no longer serve as clean, unbiased evidence for these particular choices: we looked, then decided. We record them honestly as post-hoc and diagnostic-driven. The primary feature set was fixed *before* looking at any new numbers, so that we would not pick by comparing more results.
+
+**The three approved changes**
+1. **Primary Logistic Regression = ELO2** (`elo_diff` + `abs_elo_diff`). FULL stays as a reference row for Stage 6. Justification, recorded on purpose: (a) the noise rule (the feature sets were indistinguishable, so keep the simpler one), and (b) the extrapolation risk of the league-average feature. *Not* "it had the best validation score".
+2. **`league_avg_goals_prev380` is removed from every classifier feature set** (Logistic Regression, Random Forest, XGBoost). It stays in `features.csv`, because Stage 5d will test a level-neutral form (team goals relative to the league average).
+3. **Head-to-head is kept only in FULL** (weak evidence: a borderline result among about 9 comparisons).
+
+The frozen `feature_sets_v1.json` was **not changed** (a check compares its hash with the original). The change is written as `feature_sets_v2.json` with the date (2026-11-14), the reason and a pointer to v1. In v2: FULL has 33 features, REDUCED has 24 (v1 REDUCED without the league average and head-to-head), and ELO2 has 2.
+
+**The drift table (a diagnostic).** For each of the 34 features: where do the validation values lie, measured in *training* standard deviations? ("z" below = (value - training mean) / training standard deviation. A value with |z| above 3 is far outside what the model saw.) Only validation rows were used; the check will be repeated for the test features in Stage 6, labelled a diagnostic, not a tuning step. Highlights (the whole table is in `reports/drift_validation.csv`):
+
+| Feature | Mean z | Max abs z | Validation rows above 3 | In the v2 classifier sets |
+|---|---|---|---|---|
+| `league_avg_goals_prev380` | **+4.51** | 6.67 | **73%** | none (removed) |
+| `away_sot_against_10` | +0.43 | 7.04 | 2% | FULL, REDUCED |
+| `away_ga_10` | +0.39 | 5.34 | 2% | FULL |
+| `home_venue_ga` | +0.43 | 4.96 | 4% | FULL |
+| `abs_elo_diff` | +0.17 | 3.82 | 0.8% (about 6 rows) | ELO2 (and the others) |
+| `elo_diff` | 0.00 | 3.17 | 0.3% (about 2 rows) | ELO2 (and the others) |
+| `home_elo` | +0.13 | 2.78 | 0% | FULL, REDUCED |
+| `h2h_home_ppg_3` | +0.01 | 1.87 | 0% | FULL |
+
+*How to read it, honestly:* by the rule "flag any feature with max |z| above 3", **22 of 34 features are flagged**, including both ELO2 features. But the flag only means "at least one unusual match". The *mean z* and the *share of rows above 3* show whether a feature drifts systematically: only `league_avg_goals_prev380` does (mean +4.5 training standard deviations, 73% of validation rows above 3). Every other feature has a mean z between -0.38 and +0.45 and at most 4% of rows above 3. A mild upward shift (+0.3 to +0.4) in goals-against and shots features is consistent with the higher-scoring seasons seen in EDA 04, but it is far from the league-average problem. The two ELO2 features have only about 2 and 6 unusual rows out of 760.
+
+**Results of the amendment (validation seasons, reported, not used to choose):**
+
+| Model | Features | C | Validation log loss | Accuracy |
+|---|---|---|---|---|
+| Class frequencies | none | | 1.0675 | 43.4% |
+| Bookmaker | | | 0.9400 | 56.8% |
+| FULL reference (v2) | 33 | 0.01 | 0.9577 | 55.5% |
+| **ELO2 primary** | 2 | 10 | **0.9582** | 55.4% |
+
+ELO2 versus FULL: improvement -0.0006 [-0.0116, +0.0102], so **the options cannot be told apart**, which is exactly what the noise rule says (keep the simpler one). ELO2 versus class frequencies: +0.1093 [+0.0784, +0.1402], clearly better. ELO2 versus the bookmaker: the bookmaker is clearly better by 0.0182 [0.0066, 0.0292]. For ELO2, C values from 0.1 to 10 give practically the same validation loss (0.9583, 0.9582, 0.9582): a two-feature model needs almost no regularization. Both models were then refit on 2015-16 to 2024-25 and saved; neither was scored on the test season.
+
+**Average predicted home-win probability vs the real home-win rate, per validation season:**
+
+| Season | Home teams really won | ELO2 predicted | FULL reference | Bookmaker | Class frequencies |
+|---|---|---|---|---|---|
+| 2023-24 (380 matches) | 46.1% | 45.2% (-0.9) | 47.0% (+0.9) | 44.6% (-1.4) | 44.8% (-1.3) |
+| 2024-25 (380 matches) | **40.8%** | 45.2% (+4.4) | 46.9% (+6.2) | 44.6% (+3.8) | 44.8% (+4.0) |
+
+(In brackets: predicted minus real, in percentage points.) In 2023-24 all predictors were close. **2024-25 had only 40.8% home wins** (as noted in EDA Figure 2) and *every* predictor, including the bookmaker and the "knows nothing" baseline, over-predicted home wins by 4 to 6 points. One standard error for a 380-match season is about 2.5 points, so a gap of 4.4 points is under two standard errors. So the home-win over-optimism we saw in the calibration plot (Figure 17) is largely a feature of that unusual season, and not clear evidence of a flaw in the model. Figures 15 to 18 were made under the v1 analysis (FULL with 34 features, and SMALL), and are kept as the record.
 
 ## 6. Common mistakes and gotchas
 - **Peeking at the test set.** Prevented by guards in the code, and checked by `check_models.py`.
@@ -134,10 +188,11 @@ Default: FULL, C = 0.01, all 8 fit seasons, warm-up rows included: log loss 0.96
 - **Tuning to noise.** 760 validation matches are few. Trying many combinations would eventually "win" by chance, so we changed one thing at a time and used the bootstrap rule. Even so, about 9 comparisons means about one false "clearly better" result is expected.
 - **Judging by accuracy.** 55.4% vs 55.3% means nothing; one standard error is 1.8 points.
 - **Over-reading coefficients.** Correlated features share credit (Figure 18).
-- **Features that leave their training range.** The `league_avg_goals_prev380` finding above.
+- **Features that leave their training range.** The `league_avg_goals_prev380` finding above, and the drift table in section 5b. Watch the *mean* and the *share of rows* above 3, not only the maximum.
+- **Post-hoc decisions.** Choices made after looking at validation results are no longer clean tests. We recorded the amendment as post-hoc, fixed the primary set before looking at any new numbers, and gave reasons that do not depend only on the scores.
 - **Draws.** A model that never predicts draws can still be useful; judge it with log loss and calibration, not only with accuracy.
 - **Known pitfalls from `CLAUDE.md` addressed in this stage:** *Metrics* (log loss, macro-F1 and confusion matrix reported, not only accuracy); *small test set / noise* (a bootstrap rule and a stated accuracy noise level, applied to the validation set); *bookmaker benchmark* (odds converted to probabilities and scored on the validation seasons, never used as a feature; Stage 6 scores them on the test season); *training window* (last 3, last 5 and all seasons, plus recency weights, all compared on the validation seasons, not on 2025-26); *Elo warm-up* (features were computed over all seasons; the warm-up rows were tested); *newly promoted teams and cold start* (handled in Stage 4 with defaults and Elo 1400; the warm-up experiment checked what happens when those rows are removed).
-- **Decisions to review:** (1) the rule picks SMALL, although REDUCED has a lower loss; (2) whether `league_avg_goals_prev380` should stay in the linear model (the evidence leans toward dropping it); (3) the head-to-head result is borderline.
+- **Decisions that were open, now settled (post-hoc):** (1) primary feature set = ELO2; (2) `league_avg_goals_prev380` removed from every classifier set; (3) head-to-head only in FULL. Still open: the Elo `keep` constant (0.9 vs 0.75, see `docs/decisions.md`).
 
 ## 7. Check yourself
 1. Why can't we judge the model on the 2025-26 season yet, and which seasons did we use instead?
@@ -146,6 +201,8 @@ Default: FULL, C = 0.01, all 8 fit seasons, warm-up rows included: log loss 0.96
 4. What does it mean that the bootstrap interval for an improvement is [-0.0007, +0.0040]? What do we do in that case?
 5. In the validation curve, what happens to training and validation loss as C grows from 0.001 to 10, and what does it tell us about the model?
 6. How is Logistic Regression different from KNN in what it stores and how it predicts?
+7. In the drift table, 22 of 34 features are "flagged" (max |z| above 3), yet we removed only one feature. What do the mean z and the share of rows above 3 tell us that the maximum does not, and why is a feature drifting like `league_avg_goals_prev380` especially risky for a linear model?
+8. Why must the choice of ELO2 as the primary feature set be called "post-hoc", and what did we do to limit the damage?
 
 ## 8. Try it yourself
 First compute the "knows nothing" log loss by hand. The validation set has 330 home wins, 175 draws and 255 away wins, and the fit-season shares are 0.448, 0.234, 0.318. Work out -(330 ln 0.448 + 175 ln 0.234 + 255 ln 0.318) / 760 on a calculator and check that you get about 1.0675.
@@ -170,7 +227,7 @@ Before running, predict: for C = 0.0001 and C = 100, will the training loss be a
 ## 9. How this connects to the report
 This stage feeds the **Models**, **Evaluation metrics** and the start of the **Comparison** sections of the report: why we use log loss, F1 and a confusion matrix, why draws are hard, and how the first model compares with the bookmaker.
 
-*Draft paragraph:* "As a first model we trained a multinomial Logistic Regression that outputs probabilities for home win, draw and away win. All model choices were made on two validation seasons (2023-24 and 2024-25), using models trained on 2015-16 to 2022-23, and the 2025-26 test season was kept unseen. We compared it with three references: always predicting a home win (43.4% accuracy), the training class frequencies (log loss 1.068), and the bookmaker's probabilities (log loss 0.940, accuracy 56.8%). The Logistic Regression reached a log loss of 0.961 and 55.4% accuracy, clearly better than the class-frequency baseline and close to, but still clearly behind, the bookmaker. As in the bookmaker's case, the model almost never predicts a draw, because a draw is rarely the single most likely outcome. Differences smaller than the validation noise (about 1.8 accuracy points) were not treated as improvements; changes were adopted only if a paired bootstrap interval excluded zero."
+*Draft paragraph:* "As a first model we trained a multinomial Logistic Regression that outputs probabilities for home win, draw and away win. All model choices were made on two validation seasons (2023-24 and 2024-25), using models trained on 2015-16 to 2022-23, and the 2025-26 test season was kept unseen. We compared it with three references: always predicting a home win (43.4% accuracy), the training class frequencies (log loss 1.068), and the bookmaker's probabilities (log loss 0.940, accuracy 56.8%). The final Logistic Regression uses only the Elo difference and its absolute value; this feature set was fixed after a drift diagnostic and is therefore reported as a post-hoc choice. It reached a validation log loss of 0.958 and 55.4% accuracy, clearly better than the class-frequency baseline and indistinguishable from a 33-feature version, but still clearly behind the bookmaker. As in the bookmaker's case, the model almost never predicts a draw, because a draw is rarely the single most likely outcome. Differences smaller than the validation noise (about 1.8 accuracy points) were not treated as improvements; changes were adopted only if a paired bootstrap interval excluded zero."
 
 ---
 
@@ -181,3 +238,5 @@ This stage feeds the **Models**, **Evaluation metrics** and the start of the **C
 4. The improvement could be zero (or even slightly negative), so we cannot say the alternative is better. By the noise rule we keep the simpler option and say the data cannot tell them apart.
 5. As C grows (weaker penalty) the training loss falls (0.9697 to 0.9545) because the model can fit the training data more closely, while the validation loss first improves (best at C = 0.01) and then rises (to 0.9699). That is the start of overfitting. For C that is too small, both are higher: underfitting.
 6. KNN stores every training match and predicts by finding the nearest ones and voting. Logistic Regression learns a small table of weights (a score per outcome), throws the data away, and predicts by computing the scores and turning them into probabilities with softmax.
+7. The maximum only says that at least one match was unusual (even one odd match in 760 gives a high maximum). The mean z and the share of rows above 3 show whether the whole validation period has moved: for `league_avg_goals_prev380` the mean is +4.5 and 73% of rows are above 3, so almost every validation match is far outside the training range, while all other features have mean |z| below 0.5 and at most 4% of rows above 3. A linear model multiplies each feature by a fixed weight, so a feature far outside its training range pushes the prediction along a straight line to places the model never saw (it extrapolates), whereas a tree just keeps using its last split.
+8. We looked at the validation results (and a diagnostic) before deciding, so the validation scores are no longer an unbiased test of those particular choices. To limit the damage we fixed the primary set (ELO2) before looking at any new numbers, based on the noise rule and the extrapolation risk rather than the scores, we kept the original v1 files unchanged and added v2 as a dated amendment, we recorded the decisions as post-hoc in `docs/decisions.md`, and we will repeat the drift check on the test features in Stage 6 only as a diagnostic.

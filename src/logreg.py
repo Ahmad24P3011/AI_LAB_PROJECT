@@ -1,14 +1,16 @@
-"""Stage 5a: baselines and Logistic Regression.
+"""Stage 5a: baselines and Logistic Regression (the ORIGINAL analysis, v1 feature sets).
+
+NOTE: after review, the primary model and the feature sets were amended (post-hoc, driven by a drift
+diagnostic). The amendment lives in src/amendment_5a.py; this file keeps the v1 analysis reproducible
+(it reads feature_sets_v1.json) and no longer saves a final model.
 
 Every choice is made on the VALIDATION seasons (2023-24, 2024-25) with models fitted on
 2015-16 to 2022-23. The 2025-26 test season is never loaded (see modeling_utils.py).
 Run:  python src/modeling_utils.py   (once, writes the frozen feature sets)
       python src/logreg.py
 """
-import json
 from pathlib import Path
 
-import joblib
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -26,8 +28,6 @@ ROOT = Path(__file__).resolve().parent.parent
 FIG_DIR = ROOT / "reports" / "figures"
 RESULTS_CSV = ROOT / "reports" / "ablations_logreg.csv"
 VAL_PREDICTIONS_CSV = ROOT / "reports" / "val_predictions_5a.csv"
-MODEL_PATH = ROOT / "models" / "logreg.joblib"
-CONFIG_PATH = ROOT / "models" / "logreg_config.json"
 
 C_GRID = [0.001, 0.01, 0.1, 1, 10]
 FIT_END, FINAL_END = FIT_SEASONS[-1], TRAIN_SEASONS[-1]
@@ -423,7 +423,7 @@ def worked_example(small_model, small_cfg, val_rows, y_book):
 def main():
     setup_style()
     FIG_DIR.mkdir(parents=True, exist_ok=True)
-    sets = load_feature_sets()   # FROZEN: never recomputed here
+    sets = load_feature_sets(version=1)   # FROZEN v1 sets: never recomputed here
     all_training = load_features()
     fit_rows = get_slice("fit", all_training)
     val_rows = get_slice("validation", all_training)
@@ -532,24 +532,7 @@ def main():
     predictions.to_csv(VAL_PREDICTIONS_CSV, index=False)
     print(f"Saved {VAL_PREDICTIONS_CSV.relative_to(ROOT)} ({len(predictions)} validation matches)")
 
-    section("Final model: refit on 2015-16 to 2024-25 (NOT scored on the test season)")
-    final_rows = get_slice("train_all", all_training)
-    model, used_rows = fit_config(final_cfg, final_rows, FINAL_END)
-    joblib.dump(model, MODEL_PATH)
-    window_list = window_seasons(final_cfg["window"], FINAL_END)
-    CONFIG_PATH.write_text(json.dumps({
-        "features": final_cfg["features"], "C": final_cfg["C"],
-        "window_seasons": window_list, "recency_weights": final_cfg["recency"],
-        "recency_half_life_seasons": 2 if final_cfg["recency"] else None,
-        "include_warmup_rows": final_cfg["include_warmup"],
-        "drop_2020_21_rows": final_cfg["drop_2020_21"],
-        "class_order": dict(zip(CLASS_CODES, CLASS_NAMES)), "n_training_rows": len(used_rows),
-        "scaler": "StandardScaler inside the pipeline, fitted on these rows only",
-        "chosen_on": f"validation seasons {VAL_SEASONS} with models fitted on {FIT_SEASONS[0]} to {FIT_SEASONS[-1]}",
-    }, indent=2))
-    print(f"Saved {MODEL_PATH.relative_to(ROOT)} and {CONFIG_PATH.relative_to(ROOT)}: "
-          f"{len(final_cfg['features'])} features, C={final_cfg['C']:g}, seasons "
-          f"{window_list[0]} to {window_list[-1]}, {len(used_rows)} rows")
+    print("\n(The final model is saved by src/amendment_5a.py, after the feature-set amendment.)")
 
 
 if __name__ == "__main__":

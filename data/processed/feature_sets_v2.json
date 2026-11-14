@@ -1,0 +1,79 @@
+{
+  "amends": "feature_sets_v1.json (kept unchanged)",
+  "date": "2026-11-14",
+  "reason": "Post-hoc, diagnostic-driven amendment, made after seeing validation results. A drift diagnostic showed league_avg_goals_prev380 is far outside its training range in the validation seasons (a typical validation value is about 5 training standard deviations away), which is dangerous for a linear model. Head-to-head features are weak evidence (a borderline result among about 9 comparisons). Decisions: (1) the primary Logistic Regression uses ELO2 = elo_diff + abs_elo_diff, justified by the noise rule (indistinguishable options, keep the simpler one) and by the extrapolation risk, not only by validation scores; (2) league_avg_goals_prev380 is removed from every classifier feature set (it stays in features.csv for Stage 5d); (3) head-to-head features are kept only in FULL.",
+  "FULL": [
+    "home_elo",
+    "away_elo",
+    "elo_diff",
+    "abs_elo_diff",
+    "home_ppg_5",
+    "home_gf_5",
+    "home_ga_5",
+    "home_ppg_10",
+    "home_gf_10",
+    "home_ga_10",
+    "away_ppg_5",
+    "away_gf_5",
+    "away_ga_5",
+    "away_ppg_10",
+    "away_gf_10",
+    "away_ga_10",
+    "home_venue_gf",
+    "home_venue_ga",
+    "away_venue_gf",
+    "away_venue_ga",
+    "home_shots_for_10",
+    "home_shots_against_10",
+    "home_sot_for_10",
+    "home_sot_against_10",
+    "away_shots_for_10",
+    "away_shots_against_10",
+    "away_sot_for_10",
+    "away_sot_against_10",
+    "h2h_home_ppg_3",
+    "h2h_n",
+    "season_no_fans",
+    "home_matches_played",
+    "away_matches_played"
+  ],
+  "REDUCED": [
+    "home_elo",
+    "away_elo",
+    "elo_diff",
+    "abs_elo_diff",
+    "home_ppg_5",
+    "home_gf_5",
+    "home_ga_5",
+    "home_ppg_10",
+    "home_ga_10",
+    "away_ppg_5",
+    "away_gf_5",
+    "away_ga_5",
+    "away_ppg_10",
+    "home_venue_gf",
+    "away_venue_gf",
+    "away_venue_ga",
+    "home_shots_for_10",
+    "home_shots_against_10",
+    "home_sot_against_10",
+    "away_shots_for_10",
+    "away_shots_against_10",
+    "away_sot_against_10",
+    "season_no_fans",
+    "home_matches_played"
+  ],
+  "ELO2": [
+    "elo_diff",
+    "abs_elo_diff"
+  ],
+  "removed_from_all_classifier_sets": [
+    "league_avg_goals_prev380"
+  ],
+  "h2h_only_in": [
+    "FULL"
+  ],
+  "retired": {
+    "SMALL": "v1 set elo_diff + abs_elo_diff + league_avg_goals_prev380, replaced by ELO2"
+  }
+}

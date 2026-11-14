@@ -1,8 +1,9 @@
 {
+  "status": "primary",
+  "feature_set": "ELO2",
   "features": [
     "elo_diff",
-    "abs_elo_diff",
-    "league_avg_goals_prev380"
+    "abs_elo_diff"
   ],
   "C": 10.0,
   "window_seasons": [
@@ -18,7 +19,6 @@
     "2024-25"
   ],
   "recency_weights": false,
-  "recency_half_life_seasons": null,
   "include_warmup_rows": true,
   "drop_2020_21_rows": false,
   "class_order": {
@@ -28,5 +28,6 @@
   },
   "n_training_rows": 3800,
   "scaler": "StandardScaler inside the pipeline, fitted on these rows only",
-  "chosen_on": "validation seasons ['2023-24', '2024-25'] with models fitted on 2015-16 to 2022-23"
+  "chosen_on": "validation seasons ['2023-24', '2024-25'] with models fitted on 2015-16 to 2022-23",
+  "feature_sets_file": "data/processed/feature_sets_v2.json (amendment of feature_sets_v1.json)"
 }

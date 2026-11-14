@@ -6,8 +6,9 @@ Everything here is built so that asking for test rows raises an error:
   - get_slice() only knows the slices "fit", "validation" and "train_all";
   - make_xy() refuses any table that contains a test row.
 
-Run `python src/modeling_utils.py` once to write data/processed/feature_sets.json.
-That file is FROZEN before any model result is seen.
+Run `python src/modeling_utils.py` once to write data/processed/feature_sets_v1.json.
+That file is FROZEN before any model result is seen and is never overwritten.
+feature_sets_v2.json is an AMENDMENT written after the drift diagnostic (see build_feature_sets_v2).
 """
 import json
 from pathlib import Path
@@ -25,7 +26,8 @@ from preprocess import TEST_SEASONS, TRAIN_SEASONS, VALIDATION_SCHEME
 ROOT = Path(__file__).resolve().parent.parent
 FEATURES_CSV = ROOT / "data" / "processed" / "features.csv"
 ODDS_CSV = ROOT / "data" / "processed" / "odds.csv"
-FEATURE_SETS_JSON = ROOT / "data" / "processed" / "feature_sets.json"
+FEATURE_SETS_V1_JSON = ROOT / "data" / "processed" / "feature_sets_v1.json"   # frozen original
+FEATURE_SETS_V2_JSON = ROOT / "data" / "processed" / "feature_sets_v2.json"   # amendment
 
 FIT_SEASONS = VALIDATION_SCHEME["fit"]        # 2015-16 ... 2022-23
 VAL_SEASONS = VALIDATION_SCHEME["validate"]   # 2023-24, 2024-25
@@ -129,8 +131,42 @@ def build_feature_sets(fit_rows):
                      "larger average |r| against all other features.")}
 
 
-def load_feature_sets():
-    return json.loads(FEATURE_SETS_JSON.read_text())
+LEAGUE_AVG = "league_avg_goals_prev380"
+H2H_FEATURES = ["h2h_home_ppg_3", "h2h_n"]
+ELO2_FEATURES = ["elo_diff", "abs_elo_diff"]
+AMENDMENT_DATE = "2026-11-14"
+AMENDMENT_REASON = (
+    "Post-hoc, diagnostic-driven amendment, made after seeing validation results. A drift "
+    f"diagnostic showed {LEAGUE_AVG} is far outside its training range in the validation seasons "
+    "(a typical validation value is about 5 training standard deviations away), which is "
+    "dangerous for a linear model. Head-to-head features are weak evidence (a borderline result "
+    "among about 9 comparisons). Decisions: (1) the primary Logistic Regression uses ELO2 = "
+    "elo_diff + abs_elo_diff, justified by the noise rule (indistinguishable options, keep the "
+    "simpler one) and by the extrapolation risk, not only by validation scores; (2) "
+    f"{LEAGUE_AVG} is removed from every classifier feature set (it stays in features.csv for "
+    "Stage 5d); (3) head-to-head features are kept only in FULL.")
+
+
+def build_feature_sets_v2(v1):
+    """The amendment, derived mechanically from the frozen v1 sets."""
+    drop = {LEAGUE_AVG}
+    return {
+        "amends": "feature_sets_v1.json (kept unchanged)",
+        "date": AMENDMENT_DATE,
+        "reason": AMENDMENT_REASON,
+        "FULL": [f for f in v1["FULL"] if f not in drop],                       # reference row, keeps h2h
+        "REDUCED": [f for f in v1["REDUCED"] if f not in drop | set(H2H_FEATURES)],
+        "ELO2": list(ELO2_FEATURES),                                           # primary Logistic Regression
+        "removed_from_all_classifier_sets": [LEAGUE_AVG],
+        "h2h_only_in": ["FULL"],
+        "retired": {"SMALL": "v1 set elo_diff + abs_elo_diff + league_avg_goals_prev380, replaced by ELO2"},
+    }
+
+
+def load_feature_sets(version=2):
+    """Version 1 = the frozen original, version 2 = the amendment (default)."""
+    path = FEATURE_SETS_V1_JSON if version == 1 else FEATURE_SETS_V2_JSON
+    return json.loads(path.read_text())
 
 
 # ------------------------------------------------------------------- models
@@ -217,20 +253,31 @@ def bookmaker_probabilities(match_ids):
 
 
 def main():
-    fit_rows = get_slice("fit")
-    sets = build_feature_sets(fit_rows)
-    FEATURE_SETS_JSON.write_text(json.dumps(sets, indent=2))
-    print(f"Saved {FEATURE_SETS_JSON.relative_to(ROOT)} (frozen before any model is trained)")
-    print(f"FULL: {len(sets['FULL'])} features | REDUCED: {len(sets['REDUCED'])} | "
-          f"SMALL: {len(sets['SMALL'])}")
-    print(f"Rule: {sets['rule']}")
-    print("\nRemoved by the rule:")
-    for item in sets["removed_by_rule"]:
+    # v1: written once, then frozen. If it already exists it is NEVER overwritten.
+    if FEATURE_SETS_V1_JSON.exists():
+        v1 = load_feature_sets(version=1)
+        print(f"{FEATURE_SETS_V1_JSON.relative_to(ROOT)} already exists (frozen), left unchanged")
+    else:
+        v1 = build_feature_sets(get_slice("fit"))
+        FEATURE_SETS_V1_JSON.write_text(json.dumps(v1, indent=2))
+        print(f"Saved {FEATURE_SETS_V1_JSON.relative_to(ROOT)} (frozen before any model is trained)")
+    print(f"v1 -> FULL: {len(v1['FULL'])} features | REDUCED: {len(v1['REDUCED'])} | SMALL: {len(v1['SMALL'])}")
+    print(f"v1 rule: {v1['rule']}")
+    print("v1 removed by the rule:")
+    for item in v1["removed_by_rule"]:
         print(f"  {item['dropped']:24} (r = {item['r']:.2f} with {item['kept_twin']}; {item['why']})")
-    print("\nREDUCED feature list:")
-    print("  " + ", ".join(sets["REDUCED"]))
-    print("\nSMALL feature list:")
-    print("  " + ", ".join(sets["SMALL"]))
+
+    # v2: the amendment, written once (so its date stays fixed).
+    if FEATURE_SETS_V2_JSON.exists():
+        print(f"\n{FEATURE_SETS_V2_JSON.relative_to(ROOT)} already exists, left unchanged")
+    else:
+        FEATURE_SETS_V2_JSON.write_text(json.dumps(build_feature_sets_v2(v1), indent=2))
+        print(f"\nSaved {FEATURE_SETS_V2_JSON.relative_to(ROOT)} (amendment of {AMENDMENT_DATE})")
+    v2 = load_feature_sets(version=2)
+    print(f"v2 -> FULL: {len(v2['FULL'])} features (reference, keeps head-to-head) | "
+          f"REDUCED: {len(v2['REDUCED'])} (no head-to-head) | ELO2: {len(v2['ELO2'])} (primary)")
+    print(f"Removed from every classifier set: {v2['removed_from_all_classifier_sets']}")
+    print(f"Reason: {v2['reason']}")
 
 
 if __name__ == "__main__":
