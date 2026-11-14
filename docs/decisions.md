@@ -274,20 +274,28 @@ keeps falling to 0.896. Probabilities are not over-sharpened: the largest predic
 
 ---
 
+### Stage 5c: decisions approved after review (2026-11-14)
+
+| # | Decision | Status |
+|---|---|---|
+| 1 | **Primary XGBoost = ELO2** (`elo_diff` + `abs_elo_diff`, `max_depth` 3, `learning_rate` 0.1, `min_child_weight` 20), as chosen by the noise rule: `models/xgboost.joblib` / `.ubj`. **The FULL_v2 XGBoost is kept as the reference for Stage 6**, matching the 5a and 5b pair pattern (`models/xgboost_full_reference.*`). Both are scored on the test set together in Stage 6 | settled |
+| 2 | **The DIFF XGBoost is a Stage 6 diagnostic, together with the DIFF Random Forest.** It is labelled as a diagnostic, is not a competing primary model, and its configuration is fixed now so that it cannot become a tuning step: DIFF set (16 features, `feature_sets_v3.json`), `max_depth` 3, `learning_rate` 0.1, `min_child_weight` 20, `subsample` 0.8, `colsample_bytree` 0.8, `reg_lambda` 1, `reg_alpha` 0, number of rounds chosen by early stopping (fit on the earlier seasons, stop on 2023-24 and 2024-25), then refit on all ten training seasons (2015-16 to 2024-25), warm-up rows included, no sample weights, no re-tuning. (Why it is a diagnostic: it scored best of the four sets, 0.9651, but within noise: +0.0048 [-0.0034, +0.0135]; best in both validation seasons.) | settled |
+| 3 | **The hyperparameter grid is NOT extended** (depth 3, `learning_rate` 0.1 and `min_child_weight` 20 stay at the edge of the grid) | settled |
+| 4 | **No two-model monotone construction.** Softprob objective doesn't allow a truly monotone constraint on Home-win probability; a binary two-model workaround exists but was out of scope for this project. (The monotone constraint on `elo_diff` stays out of the model: it changed nothing on the validation score and did not make the Home-win curve monotone.) | settled |
+| 5 | **Both unrequested extras are kept:** the FULL_v2 reference model and the "last 3 seasons" row in the training-window experiment | settled |
+
+---
+
 ## Open decisions
 
-1. **Stage 5c, for you:** which XGBoost goes to Stage 6? (a) the rule's choice (ELO2 features, 0.9714), clearly worse than the ELO2 Logistic
-   Regression; (b) the default FULL_v2 model (0.9699, saved as the reference row). Recommendation: score (a) and (b) together in Stage 6,
-   as in 5a and 5b.
-2. **DIFF for XGBoost:** DIFF scored best of the four sets again (0.9651, +0.0048 [-0.0034, +0.0135], within noise; best in both seasons).
-   In 5b the DIFF forest was fixed as a Stage 6 test diagnostic. Should the DIFF XGBoost also be a diagnostic? Its configuration would be:
-   DIFF set (16 features), `max_depth` 3, `learning_rate` 0.1, `min_child_weight` 20, `subsample` 0.8, `colsample_bytree` 0.8, trees chosen by
-   early stopping, all ten training seasons.
-3. All three XGBoost hyperparameters are at the edge of the grid (depth 3, `learning_rate` 0.1, `min_child_weight` 20). Extend, or accept?
-4. Monotone constraint: keep it out (no effect and it does not give a monotone Home-win probability in multi-class mode), or try the
-   two-model (binary) construction?
-5. Elo `keep` constant: 0.9 (tuned, at the edge of the grid) or 0.75 (EDA-based)? Tied within noise. Low priority.
-6. Stage 5d: test a level-neutral form of the league scoring level (team goals relative to the league average).
-7. Stage 8: player data source (recommendation: the vaastav FPL archive).
+1. Elo `keep` constant: 0.9 (tuned, at the edge of the grid) or 0.75 (EDA-based)? Tied within noise. Low priority.
+2. Stage 5d: test a level-neutral form of the league scoring level (team goals relative to the league average).
+3. Stage 8: player data source (recommendation: the vaastav FPL archive).
 
-(Closed in the Stage 5b review: the forest to carry to Stage 6, the saved reference forest, and the leaf-size grid.)
+(Closed in the Stage 5b review: the forest to carry to Stage 6, the saved reference forest, and the leaf-size grid. Closed in the
+Stage 5c review: the XGBoost to carry to Stage 6, the DIFF diagnostic, the grid, the monotone construction and the extras.)
+
+**Stage 6 test plan so far (all scored once, together, on 2025-26):** primary models: ELO2 Logistic Regression, ELO2 Random Forest,
+ELO2 XGBoost; reference rows: FULL Logistic Regression, FULL_v2 Random Forest, FULL_v2 XGBoost; baselines: always-home-win, class
+frequencies, bookmaker; diagnostics (labelled as such, not competing primaries): DIFF Random Forest and DIFF XGBoost, plus the
+drift check on the test features.
