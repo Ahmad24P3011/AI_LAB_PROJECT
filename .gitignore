@@ -6,9 +6,13 @@ __pycache__/
 # OS files
 .DS_Store
 
-# Raw data: ignore big files, keep the folder itself tracked via .gitkeep
+# Raw data: the season CSVs (about 100-200 KB each) ARE tracked so the group
+# can reproduce results. Only block anything that is not a small CSV or the
+# notes file. Files over about 50 MB must never be committed.
 data/raw/*
 !data/raw/.gitkeep
+!data/raw/E0_*.csv
+!data/raw/SOURCES.md
 
 # Models and figures are tracked on purpose (small). If one gets very large,
 # add its path here.

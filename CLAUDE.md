@@ -44,9 +44,18 @@ requirements ever conflict, tell me and the requirements win.
     put it. Do not invent or fabricate data. Respect each site's terms.
 11. **Ask before big decisions** (changing models, dropping a feature,
     switching a data source). Give me 2 to 3 options with a recommendation.
-12. **Keep the repo tidy.** Follow the folder layout below. Keep
-    `requirements.txt` updated. Commit to git at the end of each stage
-    with a clear message. Do not commit large raw data files.
+12. 12. **Keep the repo tidy and push every stage to GitHub.**
+    - Follow the folder layout below. Keep `requirements.txt` updated.
+    - At the end of each stage, commit with a clear message, e.g.
+      "Stage 1: data collection". Commit the lesson file in the same stage.
+    - Right after committing, run `git push` to `origin` and confirm it
+      succeeded. Tell me the result in the stage summary.
+    - Before pushing, check that no secrets (keys, tokens, passwords) and no
+      large raw data files are being committed.
+    - Never use `git push --force`, never rewrite history, and never change my
+      git or GitHub credentials or settings. If a push fails, show me the
+      error and stop instead of working around it.
+    - Do not commit large raw data files, `.venv/`, or files over about 50 MB.
 13. **Never edit the `template/` folder.** It holds reference files only.
 
 ## Folder layout
