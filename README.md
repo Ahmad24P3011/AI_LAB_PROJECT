@@ -107,3 +107,10 @@ All predictors were scored once on the same 380 test matches, under rules writte
 competitor (a statistical tie: log loss 1.0335, accuracy 49.5%; bookmaker 1.0185, 48.9%). Full table, intervals and figures:
 `reports/stage6_results.md`, `reports/stage6_results.csv`, `reports/stage6_bootstrap.csv`, figures 37 to 41. Check with
 `python src/check_stage6.py`.
+
+## Season simulation (Stage 7)
+
+`python src/simulator.py simulate` plays the 380 fixtures of 2025-26 1,000 times (matchweek by matchweek, from the Poisson model, using only simulated results)
+and writes `reports/sim_*.csv` and figures 42 to 45; `python src/simulator.py compare` reads the real 2025-26 results once and writes
+`reports/sim_vs_real_table.csv` and `reports/sim_ceiling_comparison.csv` (figure 44). Check with `python src/check_sim.py`. Pre-registered metrics:
+`reports/sim_preregistration.md`.

@@ -1,0 +1,152 @@
+{
+ "description": "Starting state shared by all 1,000 simulations. No 2025-26 result is part of it.",
+ "elo_constants": {
+  "K": 30,
+  "H": 50,
+  "keep": 0.9,
+  "offset": -100
+ },
+ "league_goals_per_match": {
+  "value": 2.83,
+  "held_constant": true,
+  "source": "Stage 4 neutral default league_goals = mean total goals per match over the 10 training seasons (data/processed/feature_params.json). The Stage 5d pre-season table used 2.934 (2024-25); 2.83 was specified for Stage 7."
+ },
+ "neutral_goal_defaults": {
+  "per_team": 1.415,
+  "home": 1.551842105263158,
+  "away": 1.2781578947368422,
+  "source": "data/processed/goal_feature_params.json (training rows only); used for a league average over fewer than 20 simulated matches"
+ },
+ "features_built": [
+  "elo_diff",
+  "abs_elo_diff",
+  "8 relative goal features (last 10 overall, last 10 at the venue)",
+  "league_avg_goals_prev380 (constant)",
+  "season_no_fans = 0"
+ ],
+ "features_not_built": "points, shots, head-to-head and matches-played features: the saved Poisson model does not use them",
+ "season_no_fans": 0,
+ "n_fixtures": 380,
+ "teams": {
+  "Arsenal": {
+   "elo_start": 1670.5,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Aston Villa": {
+   "elo_start": 1606.2,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Bournemouth": {
+   "elo_start": 1525.8,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Brentford": {
+   "elo_start": 1539.5,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Brighton": {
+   "elo_start": 1573.0,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Burnley": {
+   "elo_start": 1400.0,
+   "promoted_or_returning": true,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Chelsea": {
+   "elo_start": 1614.7,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Crystal Palace": {
+   "elo_start": 1567.0,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Everton": {
+   "elo_start": 1542.0,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Fulham": {
+   "elo_start": 1515.7,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Leeds": {
+   "elo_start": 1400.0,
+   "promoted_or_returning": true,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Liverpool": {
+   "elo_start": 1680.4,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Man City": {
+   "elo_start": 1671.6,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Man United": {
+   "elo_start": 1472.9,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Newcastle": {
+   "elo_start": 1585.4,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Nott'm Forest": {
+   "elo_start": 1541.4,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Sunderland": {
+   "elo_start": 1400.0,
+   "promoted_or_returning": true,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Tottenham": {
+   "elo_start": 1425.9,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "West Ham": {
+   "elo_start": 1466.1,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  },
+  "Wolves": {
+   "elo_start": 1475.7,
+   "promoted_or_returning": false,
+   "form_start": "neutral: every relative goal feature is 1.0 until the team has simulated matches",
+   "source": "data/processed/elo_start_of_2025-26.csv (keep 0.9, built from matches before 2025-26 only)"
+  }
+ }
+}

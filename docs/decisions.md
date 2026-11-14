@@ -474,3 +474,49 @@ Poisson on the test season: MAE 0.948 home, 0.843 away, 1.245 total, deviance 1.
 
 **Post-run edits (cosmetic only).** Figure 41's legend was redrawn from the saved `drift_test.csv` (`stage6.py replot-drift`); no test data read.
 Report: `reports/stage6_results.md`. Lesson: `docs/learning/06_model_comparison.md`. Checks: `src/check_stage6.py`.
+
+---
+
+## Stage 7: season simulation, matchweek by matchweek (2026-11-15)
+
+**Decided upstream (not re-decided):** Elo `keep` 0.9; matchweek-by-matchweek updating with simulated results; team-level only. **Stage 8 (player
+leaders) is dropped from the project**, so the earlier "Stage 8 data source: vaastav FPL archive" entries (Stage 5d review and the open decisions) are
+void.
+
+**Readings and deviations from the prompt (flagged before the work started).**
+- The league level 2.83 is not "the Stage 5d training-end value": it is the Stage 4 neutral default `league_goals` (the 10-season training mean).
+  The Stage 5d pre-season table used 2.934 (2024-25). Held constant at 2.83 as specified; it carries no 2025-26 information.
+- Only the features the saved Poisson model consumes are built (Elo difference, the 8 relative goal features, the league level, `season_no_fans`).
+  Points, shots, head-to-head and matches-played features would never reach the model, so they are not built.
+- There is no matchweek column: matchweek numbering is derived from the fixture list (each team's game number).
+- Implementation: all 1,000 seasons advance in lockstep (the schedule is the same in every sim); simulation i uses `default_rng(i)` uniforms turned into
+  Poisson counts by inverse-CDF sampling, so a season is identical alone or in a batch (tested). Outputs are CSV (1.3 MB and 5.8 MB), not parquet.
+- `reports/sim_preregistration.md` fixed the metrics before the simulation ran; the real results were read once, in `compare()`.
+
+**Bug found in Stage 5d code (for you to decide).** In `src/features_goals.py` (`build_goal_features`, the `rel[i] = [...]` row and the `pd.DataFrame(rel,
+columns=[...])` labels) the columns `home_ga_10_rel` and `away_gf_10_rel` hold each other's values: `home_ga_10_rel` is the AWAY team's goals scored (corr 0.975
+with `away_gf_10`) and `away_gf_10_rel` is the HOME team's goals conceded (0.970 with `home_ga_10`). The Stage 5d parent-window check tested a different
+array and missed it. Effect: in the stacked Poisson model the away row's attack and defence inputs were swapped; training, validation, Stage 6 and the
+simulation all used the same layout, so the saved model and every reported number are internally consistent. Measured on the validation seasons only
+(`reports/poisson_layout_diagnostic.csv`, same configuration refit on the fit seasons): deviance 1.0805 (as saved) vs 1.0802 (corrected), +0.0006
+[-0.0012, +0.0024]; outcome log loss 0.9581 vs 0.9577, +0.0003 [-0.0003, +0.0009]. **Immaterial.** The simulator reproduces the saved layout
+(`LEGACY_SWAPPED_LABELS = True`, verified against `features_goals.py` on a real season). Options: (A, recommended) keep everything as is and document the bug
+in the report; (B) fix the labels, regenerate `features_goals.csv`, refit the Poisson on all seasons and re-simulate, which changes the pre-registered Stage 6
+model and cannot be re-scored on the test season without a second look at it; (C) fix the code and the labels only in the files, with no refit (then
+the saved model and the features disagree: not recommended).
+
+**Results.** 1,000 seasons, average 2.831 goals per match, Elo 1210 to 1854, largest rate 3.5 (the cap). Simulated top 6 by mean points (P title / P top 4):
+Liverpool 71.0 (0.214 / 0.607), Man City 70.2 (0.187 / 0.566), Arsenal 70.0 (0.195 / 0.561), Chelsea 61.9 (0.075 / 0.340), Aston Villa 61.5 (0.073 / 0.330),
+Newcastle 58.7 (0.048 / 0.274). Bottom 3: Leeds 36.2 (P relegation 0.452), Burnley 36.5 (0.441), Sunderland 36.9 (0.432). Against the real 2025-26 table
+(Arsenal 85, Man City 78, Man United 71, Aston Villa 65, Liverpool 60, ..., West Ham 39, Burnley 22, Wolves 20): mean absolute position error 3.83,
+Spearman 0.564, mean absolute points error 9.78 (signed +0.83), real top 4 captured 2 of 4, real relegated captured 1 of 3, 18 of 20 real totals inside
+the simulated 5th to 95th percentile (outside: Man United 71 vs 69, Wolves 20 vs 25). The simulated champion averages 86.1 points (real 85); the expected table
+gives Arsenal 70.0 because it averages over the seasons Arsenal did not win. Ceiling: one-match-ahead Poisson log loss 1.0303 / accuracy 48.4% vs simulation 1.0500 /
+46.1%: gap +0.0197 [-0.0005, +0.0395] (at the edge of the noise); total-goals deviance 1.0417 vs 1.0345 (the simulation is as good on goal counts).
+
+**Open for review (none changes a number above).**
+1. The bug options A / B / C above.
+2. League level: 2.83 (training mean, held constant) vs the 2024-25 value 2.934 used by the Stage 5d pre-season table. Real 2025-26 scored 2.75 (not used).
+3. Start-of-season form: neutral for all teams (as specified) vs carrying each team's real last-10 matches of 2024-25 (leakage-free, closer to how the model was trained).
+4. Independent home/away goal draws (standard) vs the small negative correlation of -0.14 measured on the training seasons.
+5. Report framing: the simulation ranks Liverpool as favourite; the real champion Arsenal had a 19.5% simulated title chance (3rd by P(title)).

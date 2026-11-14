@@ -1,0 +1,45 @@
+{
+ "mean_abs_position_error": 3.8335999999999997,
+ "spearman_rank_correlation": 0.5639097744360902,
+ "mean_abs_points_error": 9.77885,
+ "mean_signed_points_error": 0.8285499999999992,
+ "real_top4": [
+  "Arsenal",
+  "Man City",
+  "Man United",
+  "Aston Villa"
+ ],
+ "sim_top4": [
+  "Liverpool",
+  "Man City",
+  "Arsenal",
+  "Chelsea"
+ ],
+ "n_real_top4_captured": 2,
+ "real_bottom3": [
+  "West Ham",
+  "Burnley",
+  "Wolves"
+ ],
+ "sim_bottom3": [
+  "Sunderland",
+  "Burnley",
+  "Leeds"
+ ],
+ "n_real_relegated_captured": 1,
+ "real_champion": "Arsenal",
+ "real_champion_pts": 85,
+ "sim_P_title_of_real_champion": 0.195,
+ "sim_mean_pts_of_real_champion": 70.029,
+ "sim_favourite": "Liverpool",
+ "sim_P_title_of_favourite": 0.214,
+ "ceiling_log_loss": 1.0302740744701557,
+ "sim_log_loss_smoothed": 1.0499633046352752,
+ "log_loss_gap_sim_minus_ceiling": 0.019689230165119476,
+ "log_loss_gap_interval": [
+  -0.0004964388608611365,
+  0.03948092122487116
+ ],
+ "sim_log_loss_unsmoothed_clipped_1e-15": 1.0500128076398234,
+ "n_matches_where_sim_gave_real_outcome_zero_share": 0
+}

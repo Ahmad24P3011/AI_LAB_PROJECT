@@ -1,0 +1,12 @@
+{
+ "n_sims": 1000,
+ "seeds": "0 to 999",
+ "avg_goals_per_match": 2.8308315789473686,
+ "elo_min": 1210.2047948436543,
+ "elo_max": 1853.9588363967455,
+ "max_lambda_used": 3.5,
+ "lambda_cap": 3.5,
+ "legacy_swapped_labels": true,
+ "league_level": 2.83,
+ "n_fixtures": 380
+}
