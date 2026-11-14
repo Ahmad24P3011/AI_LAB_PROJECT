@@ -1,0 +1,52 @@
+{
+  "status": "primary: configuration chosen by the noise rule",
+  "features": [
+    "elo_diff",
+    "abs_elo_diff"
+  ],
+  "n_trees": 62,
+  "max_depth": 3,
+  "learning_rate": 0.1,
+  "min_child_weight": 20,
+  "subsample": 0.8,
+  "colsample_bytree": 0.8,
+  "reg_lambda": 1.0,
+  "reg_alpha": 0.0,
+  "objective": "multi:softprob",
+  "num_class": 3,
+  "tree_method": "hist",
+  "random_state": 42,
+  "n_jobs": 1,
+  "monotone_constraint_on_elo_diff": false,
+  "window_seasons": [
+    "2015-16",
+    "2016-17",
+    "2017-18",
+    "2018-19",
+    "2019-20",
+    "2020-21",
+    "2021-22",
+    "2022-23",
+    "2023-24",
+    "2024-25"
+  ],
+  "recency_weights": false,
+  "recency_half_life_seasons": null,
+  "include_warmup_rows": true,
+  "drop_2020_21_rows": false,
+  "class_order": {
+    "0": "Home win",
+    "1": "Draw",
+    "2": "Away win"
+  },
+  "n_training_rows": 3800,
+  "scaling": "none (trees do not need it)",
+  "early_stopping": "number of trees chosen by early stopping (rounds 50, cap 2000) fitting on the earlier seasons and stopping on the last 2 seasons of the training period; then refit on all",
+  "chosen_on": "validation seasons ['2023-24', '2024-25'] with models fitted on 2015-16 to 2022-23",
+  "feature_sets_file": "data/processed/feature_sets_v3.json",
+  "file_sizes_mb": {
+    "xgboost.joblib": 0.04,
+    "xgboost.ubj": 0.19
+  },
+  "xgboost_version": "3.4.1"
+}

@@ -193,11 +193,101 @@ post-hoc observation based on 380 matches per season.
 
 ---
 
+## Stage 5c: XGBoost (2026-11-14)
+
+Same protocol as 5a and 5b: all choices on the validation seasons (2023-24, 2024-25) with models fitted on 2015-16 to
+2022-23; the 2025-26 test season was not touched; feature sets reused from `feature_sets_v3.json` (no v4; hashes checked).
+
+**Corrections and readings made at the start of the stage (the prompt and the record differ):**
+- The stage prompt said head-to-head "helped LR slightly". The Stage 5a record says the opposite: removing it was better for the
+  Logistic Regression, +0.0025 [+0.0004, +0.0048] (borderline). We follow the recorded result (head-to-head stays in FULL only).
+- "All 8 seasons beat the last 3, recency hurt" holds for the Logistic Regression; for the forests no window was clearly different.
+- **Early stopping** is done in two steps, always on a time-based split inside the data a model may use: fit on the earlier seasons
+  of the window, stop on its last two seasons (for the default: fit on 2015-16 to 2020-21, stop on 2021-22 and 2022-23) to find the
+  number of trees; the scored model is then refit on the WHOLE window with that number of trees. So "all 8 fit seasons" are used for
+  fitting and the validation seasons are never used for stopping. The inner-only model's validation score is kept in the grid for
+  information (it is slightly worse: 0.9758 against 0.9699 for the default). The two final models choose their tree count by
+  stopping on 2023-24 and 2024-25 and are then refit on all ten seasons; they are never scored on validation or test again.
+  (`reports/xgb_early_stopping_audit.json` lists every early-stopping run; `src/check_xgb.py` checks them.)
+- "Same noise rule" was read as including the tie-break of 5a and 5b: adopt a change only if the 95% interval of the improvement
+  excludes zero, otherwise keep the simpler option.
+- **SHAP** was computed with XGBoost's own exact TreeSHAP (`pred_contribs`), with our own beeswarm plot, so no new package was
+  needed (`requirements.txt` unchanged; the `shap` package is not installed).
+
+**Hyperparameters** (grid of 12 on FULL_v2, up to 2000 trees allowed, `subsample` = `colsample_bytree` = 0.8, `reg_lambda` = 1,
+`reg_alpha` = 0): `max_depth` 3, `learning_rate` 0.1, `min_child_weight` 20; early stopping chose **25 trees**
+(here a "tree" means a boosting round; XGBoost builds one small tree per class in every round, so 25 rounds are 75 small trees). All three are at the
+**edge of the grid** (smallest depth, largest learning rate, largest `min_child_weight`), so a simpler or more regularised model might
+do even better. The grid is flat (validation log loss 0.9699 to 0.9843); deeper trees and small `min_child_weight` overfit (training
+log loss down to 0.735 with no validation gain).
+
+**Validation results (760 matches):**
+
+| Predictor | Accuracy | Log loss | Draws predicted |
+|---|---|---|---|
+| Class frequencies | 43.4% | 1.0675 | 0 |
+| Bookmaker | 56.8% | 0.9400 | 0 |
+| ELO2 Logistic Regression | 55.4% | 0.9582 | 0 |
+| FULL reference Logistic Regression | 55.5% | 0.9577 | 1 |
+| Random Forest ELO2 | 54.6% | 0.9733 | 0 |
+| Random Forest FULL_v2 | 55.9% | 0.9649 | 0 |
+| XGBoost default (FULL_v2) | 55.3% | 0.9699 | 0 |
+| XGBoost chosen by the rule (ELO2 features) | 54.2% | 0.9714 | 8 |
+
+Paired bootstrap (improvement in log loss; positive = XGBoost better): default vs ELO2 LR -0.0117 [-0.0208, -0.0019] (clearly
+worse); vs bookmaker -0.0299 [-0.0420, -0.0169] (bookmaker clearly better); vs Random Forest ELO2 +0.0035 [-0.0070, +0.0134]; vs
+Random Forest FULL_v2 -0.0050 [-0.0103, +0.0004]. Chosen vs ELO2 LR -0.0132 [-0.0224, -0.0038]; vs bookmaker -0.0315 [-0.0449, -0.0173];
+vs Random Forest ELO2 +0.0019 [-0.0030, +0.0069]; vs Random Forest FULL_v2 -0.0065 [-0.0161, +0.0025].
+
+| Experiment (vs the default XGBoost) | Result (improvement; positive = better) | Verdict |
+|---|---|---|
+| a. Feature set (max_depth re-tuned) | REDUCED -0.0017 [-0.0064, +0.0028]; ELO2 -0.0016 [-0.0113, +0.0083]; DIFF +0.0048 [-0.0034, +0.0135] | None clearly different. **By the rule the simplest, ELO2, is chosen** (flagged below) |
+| b. Head-to-head | Without: +0.0001 [-0.0028, +0.0032] | Cannot tell; simpler "without" (moot for ELO2) |
+| c. `season_no_fans` | Exclude: -0.0003 [-0.0031, +0.0026] | Cannot tell; simpler "exclude" (moot for ELO2) |
+| d. Training window | Last 3 (extra row, CLAUDE.md pitfall): -0.0120 [-0.0231, -0.0008] (clearly worse); last 5: -0.0037 [-0.0103, +0.0027]; recency weights: -0.0072 [-0.0144, 0.0000] (the interval ends at zero) | **Keep all 8 seasons, no weights** |
+| e. Warm-up rows | Exclude: +0.0015 [-0.0038, +0.0067] | **Keep warm-up rows** (cannot tell) |
+| f. Monotone constraint on `elo_diff` | -0.0004 [-0.0047, +0.0041] | **Unconstrained** (cannot tell) |
+
+**Monotone constraint, what we found.** In XGBoost's multi-class mode the constraint is applied to every class's score, so it does
+not guarantee that the Home-win probability rises with `elo_diff` (it depends on the three scores relative to each other). Checked
+empirically: even with `elo_diff` as the only Elo feature (ELO2), 9 of 24 steps of the Home-win curve still go down (11 of 24
+unconstrained); in FULL_v2 the unconstrained `home_elo` and `away_elo` can bypass it (5 of 24 down). The constraint did not change the
+validation score on any set (FULL_v2 -0.0004, ELO2 +0.0008 [-0.0046, +0.0059], DIFF +0.0007 [-0.0045, +0.0058]; the last two are
+diagnostics, not used for selection). A true monotone Home-win probability would need a different construction (for example a
+separate binary home-win model with a +1 constraint); not tried.
+
+**Rule outcome.** The combined configuration is a boosted model on `elo_diff` + `abs_elo_diff` only (validation log loss 0.9714,
+57 trees), clearly worse than the ELO2 Logistic Regression (-0.0132 [-0.0224, -0.0038]), as the ELO2 forest was in 5b. The default
+FULL_v2 model is also clearly worse than it (-0.0117 [-0.0208, -0.0019]). Boosting did not beat the simple model or the bookmaker.
+
+**Saved models** (not scored on the test set): `models/xgboost.joblib`, `models/xgboost.ubj` and `models/xgboost_config.json` (the rule's
+choice, ELO2 features, 62 trees after the final-period early stopping) and, as in 5a and 5b, `models/xgboost_full_reference.*` (the default
+FULL_v2 model, 30 trees). All files are under 0.2 MB. Validation probabilities: `reports/val_predictions_5c.csv`.
+
+**Understanding results (diagnostics, not used to choose):** three importances of the default model disagree on the minor features.
+`elo_diff` is first on all three (gain 17.4%, mean |SHAP| 34.4%, permutation +0.0795 log loss). `season_no_fans` has a high gain (3.0%,
+rank 9: the trees used it to isolate 2020-21 while training) but permutation importance 0.0000 (it is 0 in every validation match);
+`away_ppg_5` is never used (gain 0) and `h2h_n` has a gain rank of 32. 13 of 33 features do not hurt when shuffled. The boosting curve
+for stumps reaches its lowest validation log loss after about 107 trees (0.9699) and gets worse by 500 (0.9916) while the training loss
+keeps falling to 0.896. Probabilities are not over-sharpened: the largest predicted Home-win probability is 0.81 (default), against
+0.93 for the ELO2 Logistic Regression and 0.88 for the bookmaker.
+
+---
+
 ## Open decisions
 
-1. Elo `keep` constant: 0.9 (tuned, at the edge of the grid) or 0.75 (EDA-based)? Tied within noise. Low priority.
-2. Stage 5c: which feature set is primary for XGBoost (same noise rule, same v3 sets)?
-3. Stage 5d: test a level-neutral form of the league scoring level (team goals relative to the league average).
-4. Stage 8: player data source (recommendation: the vaastav FPL archive).
+1. **Stage 5c, for you:** which XGBoost goes to Stage 6? (a) the rule's choice (ELO2 features, 0.9714), clearly worse than the ELO2 Logistic
+   Regression; (b) the default FULL_v2 model (0.9699, saved as the reference row). Recommendation: score (a) and (b) together in Stage 6,
+   as in 5a and 5b.
+2. **DIFF for XGBoost:** DIFF scored best of the four sets again (0.9651, +0.0048 [-0.0034, +0.0135], within noise; best in both seasons).
+   In 5b the DIFF forest was fixed as a Stage 6 test diagnostic. Should the DIFF XGBoost also be a diagnostic? Its configuration would be:
+   DIFF set (16 features), `max_depth` 3, `learning_rate` 0.1, `min_child_weight` 20, `subsample` 0.8, `colsample_bytree` 0.8, trees chosen by
+   early stopping, all ten training seasons.
+3. All three XGBoost hyperparameters are at the edge of the grid (depth 3, `learning_rate` 0.1, `min_child_weight` 20). Extend, or accept?
+4. Monotone constraint: keep it out (no effect and it does not give a monotone Home-win probability in multi-class mode), or try the
+   two-model (binary) construction?
+5. Elo `keep` constant: 0.9 (tuned, at the edge of the grid) or 0.75 (EDA-based)? Tied within noise. Low priority.
+6. Stage 5d: test a level-neutral form of the league scoring level (team goals relative to the league average).
+7. Stage 8: player data source (recommendation: the vaastav FPL archive).
 
 (Closed in the Stage 5b review: the forest to carry to Stage 6, the saved reference forest, and the leaf-size grid.)

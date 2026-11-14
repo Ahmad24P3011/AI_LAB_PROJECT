@@ -1,0 +1,712 @@
+[
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 70
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 77
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 25
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 25
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 68
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 68
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 24
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 25
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 68
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 61
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 24
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 25
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 24,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 21
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 24,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 23
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 24,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 18
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 2,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 57
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 2,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 57
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 2,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 57
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 16,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 24
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 16,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 24
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 16,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 24
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 31,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 25
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 32,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 25
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 380,
+  "n_inner_stop": 760,
+  "n_trees": 15
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 1140,
+  "n_inner_stop": 760,
+  "n_trees": 24
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 21
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-14",
+  "n_inner_fit": 2181,
+  "n_inner_stop": 750,
+  "n_trees": 22
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 25
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 2,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 176
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 16,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 31
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 2,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 57
+ },
+ {
+  "purpose": "scored_on_validation",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21"
+  ],
+  "inner_stop_seasons": [
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_fit_last_date": "2021-05-23",
+  "inner_stop_first_date": "2021-08-13",
+  "n_inner_fit": 2280,
+  "n_inner_stop": 760,
+  "n_trees": 25
+ },
+ {
+  "purpose": "final_refit",
+  "n_features": 2,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21",
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_stop_seasons": [
+   "2023-24",
+   "2024-25"
+  ],
+  "inner_fit_last_date": "2023-05-28",
+  "inner_stop_first_date": "2023-08-11",
+  "n_inner_fit": 3040,
+  "n_inner_stop": 760,
+  "n_trees": 62
+ },
+ {
+  "purpose": "final_refit",
+  "n_features": 33,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21",
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_stop_seasons": [
+   "2023-24",
+   "2024-25"
+  ],
+  "inner_fit_last_date": "2023-05-28",
+  "inner_stop_first_date": "2023-08-11",
+  "n_inner_fit": 3040,
+  "n_inner_stop": 760,
+  "n_trees": 30
+ }
+]
