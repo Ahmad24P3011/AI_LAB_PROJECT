@@ -161,14 +161,43 @@ curve with some zigzags (noise); no clear non-linear shape was found.
 
 ---
 
+### Stage 5b: decisions approved after review (2026-11-14)
+
+| # | Decision | Status |
+|---|---|---|
+| 1 | **Primary Random Forest = ELO2** (`elo_diff` + `abs_elo_diff`, `min_samples_leaf` 80, `max_features` 0.5, `max_depth` 8), as chosen by the noise rule. `models/random_forest.joblib` | settled |
+| 2 | **The FULL_v2 forest is kept as the reference model** saved alongside it, matching the Stage 5a pair (`models/random_forest_full_reference.joblib`). Both are scored on the test set together in Stage 6 | settled |
+| 3 | **The `min_samples_leaf` grid is NOT extended** (80 stays the edge of the grid; the time is better spent on Stage 5c) | settled |
+
+**DIFF diagnostic (recorded now, before any test result exists).** The DIFF feature set had the best validation score
+among the forests (log loss 0.9586, against 0.9649 for FULL_v2 and 0.9733 for ELO2; best in both validation seasons:
+0.9227 in 2023-24 and 0.9946 in 2024-25), but the difference against the default is **within noise** (+0.0063
+[-0.0006, +0.0134]). It will be scored on the test set in Stage 6 **as a diagnostic, labelled as such, and not treated as
+a competing primary model.** To keep it a diagnostic and not a tuning step, its configuration is fixed now and must not be
+changed after the test result is seen: feature set `DIFF` from `feature_sets_v3.json` (16 features), 500 trees,
+`min_samples_leaf` 80, `max_features` 0.5, `max_depth` 8, `random_state` 42, refit on all ten training seasons
+(2015-16 to 2024-25), warm-up rows included, no sample weights, no re-tuning.
+
+**The 2024-25 pattern (recorded as an observation, not a decision).** The ELO2 Logistic Regression beat all four forests in
+2024-25 (log loss 0.9852, against 0.9946 for the DIFF forest, 0.9990 for the FULL_v2 forest, 0.9998 for the REDUCED forest and
+1.0084 for the ELO2 forest). This is the season in which home teams won only **40.8%** of matches (EDA 02; 46.1% in 2023-24).
+Every predictor was worse in 2024-25 than in 2023-24 (bookmaker 0.9092 to 0.9708, ELO2 Logistic Regression 0.9313 to 0.9852,
+FULL_v2 forest 0.9308 to 0.9990, ELO2 forest 0.9382 to 1.0084, even the class-frequency baseline 1.0540 to 1.0809), and every one
+over-predicted home wins in 2024-25 (average predicted home-win probability 44.6% to 45.4%, against 40.8% real). The forests lost more than the
+Logistic Regression (+0.068 and +0.070 against +0.054), so the Logistic Regression's edge is clear only in that season: ELO2
+Logistic Regression vs ELO2 forest +0.0233 [+0.0102, +0.0362] in 2024-25 and +0.0070 [-0.0059, +0.0201] in 2023-24; vs the
+FULL_v2 forest +0.0139 [+0.0035, +0.0238] in 2024-25 and -0.0005 [-0.0101, +0.0096] in 2023-24. **Caveats:** the link to the low
+home-win rate is plausible but not proven (it is consistent with a low-home-win season hurting all predictors, and the more
+variable forest probabilities most); splitting the validation set by season was done after seeing the results, so this is a
+post-hoc observation based on 380 matches per season.
+
+---
+
 ## Open decisions
 
-1. **Stage 5b, for you:** which Random Forest goes to Stage 6? (a) the rule's choice (ELO2 features, validation 0.9733),
-   which is clearly worse than the ELO2 Logistic Regression; (b) the default FULL_v2 forest (0.9649, saved as the reference row);
-   (c) DIFF (0.9586, lowest, but picking it now is post-hoc). Recommendation: score (a) and (b) together in Stage 6, as in 5a, and
-   treat DIFF only as a documented alternative unless you decide otherwise before Stage 6.
-2. `min_samples_leaf` = 80 is the edge of the grid. Extend the grid in a later stage?
-3. Elo `keep` constant: 0.9 (tuned, at the edge of the grid) or 0.75 (EDA-based)? Tied within noise. Low priority.
-4. Stage 5c: which feature set is primary for XGBoost (same noise rule, same v3 sets)?
-5. Stage 5d: test a level-neutral form of the league scoring level (team goals relative to the league average).
-6. Stage 8: player data source (recommendation: the vaastav FPL archive).
+1. Elo `keep` constant: 0.9 (tuned, at the edge of the grid) or 0.75 (EDA-based)? Tied within noise. Low priority.
+2. Stage 5c: which feature set is primary for XGBoost (same noise rule, same v3 sets)?
+3. Stage 5d: test a level-neutral form of the league scoring level (team goals relative to the league average).
+4. Stage 8: player data source (recommendation: the vaastav FPL archive).
+
+(Closed in the Stage 5b review: the forest to carry to Stage 6, the saved reference forest, and the leaf-size grid.)

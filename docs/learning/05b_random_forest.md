@@ -131,7 +131,7 @@ Default forest: FULL_v2, `min_samples_leaf` 80, all 8 fit seasons, warm-up rows 
 
 **What this means.** *Not one* of the changes is clearly better or clearly worse than the default: the data cannot tell any of them apart. Under the noise rule, ties go to the simpler option, which gives: feature set ELO2 (a), without head-to-head (b), without `season_no_fans` (c; both moot once the set is ELO2), all 8 seasons with no weights (d) and warm-up rows kept (e). We added the "last 3 seasons" row because `CLAUDE.md` asks for the last 3, 5 and all seasons; it is not clearly different from the others.
 
-**A problem with the rule, honestly.** "Keep the simpler option" picks ELO2 as the feature set, and a forest on two features is **clearly worse than the Logistic Regression on the same two features** (-0.0151 [-0.0239, -0.0056]). The ELO2 interval against the default only just includes zero (upper end +0.0005). So the rule gave a legal but unhelpful answer. DIFF has the lowest loss (0.9586) and the best score in *both* validation seasons, but not clearly better, and choosing it now would be a post-hoc choice. I flagged this for your decision (`docs/decisions.md`). To keep Stage 6 fair we saved both the rule's forest (ELO2) and the default FULL_v2 forest as a reference row.
+**A problem with the rule, honestly.** "Keep the simpler option" picks ELO2 as the feature set, and a forest on two features is **clearly worse than the Logistic Regression on the same two features** (-0.0151 [-0.0239, -0.0056]). The ELO2 interval against the default only just includes zero (upper end +0.0005). So the rule gave a legal but unhelpful answer. DIFF has the lowest loss (0.9586) and the best score in *both* validation seasons, but not clearly better, and choosing it now would be a post-hoc choice. I flagged this for review, and after review the team **confirmed the rule's choice: the primary Random Forest is the ELO2 forest** (`docs/decisions.md`). To keep Stage 6 fair we saved both the rule's forest (ELO2) and the default FULL_v2 forest as a reference row, matching the Logistic Regression pair in 5a.
 
 ### Figure 22: feature importance
 ![Feature importance](../../reports/figures/22_rf_importance.png)
@@ -157,7 +157,17 @@ A forest would win if there were strong interactions or threshold effects, or fa
 
 ### How the drift finding showed up
 - In 5a we found that goal and shot rolling features run about 0.3 standard deviations higher in the validation seasons. A tree splits on thresholds learned in training, so a systematic upward shift moves matches into different leaves. The **level-neutral DIFF set** was the best set in *both* validation seasons (log loss 0.9227 and 0.9946, against 0.9308 and 0.9990 for FULL_v2, 0.9296 and 0.9998 for REDUCED, 0.9382 and 1.0084 for ELO2), which is consistent with the idea, but the difference against FULL_v2 is within noise ([-0.0006, +0.0134]), so it is only a hint.
-- **2024-25 was a hard season for everyone:** the home team won only 40.8% of the time. The ELO2 Logistic Regression scored 0.9852 in 2024-25, better than every forest (0.9946 to 1.0084). The forests' average predicted home-win probability was 45.4% (default) and 44.8% (ELO2 forest) against 40.8% real.
+- **2024-25 was a hard season for everyone.** The home team won only 40.8% of the time (EDA Figure 2; 46.1% in 2023-24). The ELO2 Logistic Regression scored 0.9852 in 2024-25, better than every forest (DIFF 0.9946, FULL_v2 0.9990, REDUCED 0.9998, ELO2 1.0084). Per-season log loss for each predictor:
+
+  | Predictor | 2023-24 | 2024-25 | Change |
+  |---|---|---|---|
+  | Bookmaker | 0.9092 | 0.9708 | +0.062 |
+  | ELO2 Logistic Regression | 0.9313 | 0.9852 | +0.054 |
+  | FULL_v2 forest | 0.9308 | 0.9990 | +0.068 |
+  | ELO2 forest | 0.9382 | 1.0084 | +0.070 |
+  | Class frequencies | 1.0540 | 1.0809 | +0.027 |
+
+  *Every* predictor got worse in 2024-25, and every one over-predicted home wins: the average predicted home-win probability was 44.6% (bookmaker), 45.2% (ELO2 Logistic Regression), 45.4% (FULL_v2 forest) and 44.8% (ELO2 forest), against 40.8% real. The forests lost more than the Logistic Regression, so the Logistic Regression's advantage is clear only in that season: ELO2 Logistic Regression vs ELO2 forest +0.0233 [+0.0102, +0.0362] in 2024-25 but +0.0070 [-0.0059, +0.0201] in 2023-24; vs the default forest +0.0139 [+0.0035, +0.0238] in 2024-25 and -0.0005 [-0.0101, +0.0096] in 2023-24. *Caution:* a low home-win season hurting all predictors, and the more variable forest probabilities most, is a plausible explanation but not a proven one, and splitting the validation set by season after seeing the results is a post-hoc look at 380 matches per season.
 - The warm-up experiment showed no effect for the forest (-0.0000), unlike for the Logistic Regression in 5a. That is consistent with the Logistic Regression effect having been caused by `league_avg_goals_prev380`, which is not in any of these sets.
 
 ## 6. Common mistakes and gotchas
@@ -167,10 +177,10 @@ A forest would win if there were strong interactions or threshold effects, or fa
 - **Scaling for trees.** Unnecessary: trees only compare a feature with a threshold.
 - **Too many comparisons on 760 matches.** The grid, the five experiments and four feature sets are a lot of looks at one validation set; that is why we use the bootstrap rule, and why we only trust clear differences.
 - **A rule can give an unhelpful answer.** The "simpler option" rule chose a two-feature forest that a two-feature Logistic Regression beats clearly. The rule is a safeguard, not an oracle.
-- **Grid edge.** `min_samples_leaf` = 80 is the edge of the grid.
+- **Grid edge.** `min_samples_leaf` = 80 is the edge of the grid. After review the team decided **not** to extend it (the time is better spent on XGBoost), so we know a larger leaf size might do slightly better and accept that.
 - **Test-set leakage.** None: the code guards, the frozen file hash, and the perturbation test for DIFF are all checked in `check_rf.py`.
 - **Known pitfalls from `CLAUDE.md` addressed in this stage:** *Metrics* (log loss, macro-F1, per-class results and confusion matrix, not accuracy alone); *small sample noise* (a paired bootstrap on 760 matches and a stated accuracy noise of about 1.8 points, applied to the validation set); *bookmaker benchmark* (scored on validation, never a feature); *training window* (last 3, last 5, all 8 and recency weights, all compared on the validation seasons); *Elo warm-up and promoted teams* (warm-up rows were included, and the experiment checked excluding them); *level shifts / drift* (the DIFF set and the drift-based removal of the league average).
-- **Decisions to review** (in `docs/decisions.md`): which forest goes to Stage 6 (the rule's ELO2 forest, the default FULL_v2 forest, or DIFF); extending the leaf-size grid.
+- **Decisions made after review** (recorded in `docs/decisions.md`): (1) the **primary Random Forest is the ELO2 forest**, as chosen by the noise rule; (2) the **FULL_v2 forest stays as the reference model** saved alongside it, like the Logistic Regression pair in 5a, and both are scored on the test set together in Stage 6; (3) the leaf-size grid is **not** extended. **DIFF is a diagnostic only:** it had the best validation score but within noise (+0.0063 [-0.0006, +0.0134]), so in Stage 6 it will be scored on the test set *as a diagnostic, labelled as such, and not treated as a competing primary model*. Its configuration is fixed in advance (DIFF set, 500 trees, `min_samples_leaf` 80, `max_features` 0.5, `max_depth` 8, all ten training seasons) so that it cannot become a tuning step.
 
 ## 7. Check yourself
 1. Write the Gini impurity of a group with 50 home wins, 25 draws and 25 away wins. Is it purer or more mixed than a group with 90 home wins, 5 draws and 5 away wins?
