@@ -10,6 +10,7 @@ Run `python src/modeling_utils.py` once to write data/processed/feature_sets_v1.
 That file is FROZEN before any model result is seen and is never overwritten.
 feature_sets_v2.json is an AMENDMENT written after the drift diagnostic (see build_feature_sets_v2).
 """
+import hashlib
 import json
 from pathlib import Path
 
@@ -28,6 +29,8 @@ FEATURES_CSV = ROOT / "data" / "processed" / "features.csv"
 ODDS_CSV = ROOT / "data" / "processed" / "odds.csv"
 FEATURE_SETS_V1_JSON = ROOT / "data" / "processed" / "feature_sets_v1.json"   # frozen original
 FEATURE_SETS_V2_JSON = ROOT / "data" / "processed" / "feature_sets_v2.json"   # amendment
+FEATURE_SETS_V3_JSON = ROOT / "data" / "processed" / "feature_sets_v3.json"   # Stage 5b sets (frozen)
+FEATURE_SETS_V3_SHA = ROOT / "data" / "processed" / "feature_sets_v3.sha256"  # recorded hash of v3
 
 FIT_SEASONS = VALIDATION_SCHEME["fit"]        # 2015-16 ... 2022-23
 VAL_SEASONS = VALIDATION_SCHEME["validate"]   # 2023-24, 2024-25
@@ -164,9 +167,57 @@ def build_feature_sets_v2(v1):
 
 
 def load_feature_sets(version=2):
-    """Version 1 = the frozen original, version 2 = the amendment (default)."""
-    path = FEATURE_SETS_V1_JSON if version == 1 else FEATURE_SETS_V2_JSON
+    """Version 1 = the frozen original, 2 = the amendment (default), 3 = the Stage 5b sets."""
+    path = {1: FEATURE_SETS_V1_JSON, 2: FEATURE_SETS_V2_JSON, 3: FEATURE_SETS_V3_JSON}[version]
     return json.loads(path.read_text())
+
+
+# ---------------------------------------------------- level-neutral DIFF features
+# For each of these statistics we use  home_X - away_X.  A difference cancels a shift that
+# raises BOTH teams' numbers (for example a higher-scoring season).
+DIFF_PAIRS = ["ppg_5", "gf_5", "ga_5", "ppg_10", "gf_10", "ga_10", "shots_for_10",
+              "shots_against_10", "sot_for_10", "sot_against_10", "venue_gf", "venue_ga"]
+DIFF_FEATURES = ([f"diff_{x}" for x in DIFF_PAIRS]
+                 + ["elo_diff", "abs_elo_diff", "season_no_fans", "home_matches_played"])
+
+
+def add_diff_features(table):
+    """Add diff_X = home_X - away_X to a COPY of the table. Same-row arithmetic only:
+    each new value uses two columns of its own row and nothing else, so it cannot leak."""
+    out = table.copy()
+    for stat in DIFF_PAIRS:
+        out[f"diff_{stat}"] = table[f"home_{stat}"] - table[f"away_{stat}"]
+    return out
+
+
+def verify_diff_is_row_local(table, n_single_rows=25, seed=SEED):
+    """Prove the DIFF features are same-row arithmetic: (1) shuffling the rows and (2) computing
+    them one row at a time gives exactly the same values as computing them on the whole table."""
+    reference = add_diff_features(table)[[f"diff_{x}" for x in DIFF_PAIRS]]
+    rng = np.random.default_rng(seed)
+    shuffled = table.iloc[rng.permutation(len(table))]
+    again = add_diff_features(shuffled)[[f"diff_{x}" for x in DIFF_PAIRS]].loc[reference.index]
+    assert np.array_equal(reference.to_numpy(), again.to_numpy()), "DIFF depends on row order"
+    for i in rng.choice(len(table), size=n_single_rows, replace=False):
+        single = add_diff_features(table.iloc[[i]])[[f"diff_{x}" for x in DIFF_PAIRS]]
+        assert np.array_equal(single.to_numpy()[0], reference.iloc[i].to_numpy()), "DIFF uses other rows"
+    return True
+
+
+def build_feature_sets_v3(v2, created):
+    """Feature sets for Stage 5b (Random Forest). Frozen before any forest result is seen."""
+    return {
+        "based_on": "feature_sets_v2.json (kept unchanged); v1 also unchanged",
+        "date": created,
+        "FULL_v2": list(v2["FULL"]),            # 33 features, keeps head-to-head
+        "REDUCED": list(v2["REDUCED"]),         # 24 features, no head-to-head
+        "ELO2": list(v2["ELO2"]),               # elo_diff, abs_elo_diff
+        "DIFF": list(DIFF_FEATURES),            # 16 level-neutral features
+        "diff_definition": ("diff_X = home_X - away_X for X in " + ", ".join(DIFF_PAIRS)
+                            + "; plus elo_diff, abs_elo_diff, season_no_fans, home_matches_played. "
+                            "Computed in code from existing features.csv columns (same-row arithmetic)."),
+        "excluded_from_all_sets": [LEAGUE_AVG],
+    }
 
 
 # ------------------------------------------------------------------- models
@@ -278,6 +329,23 @@ def main():
           f"REDUCED: {len(v2['REDUCED'])} (no head-to-head) | ELO2: {len(v2['ELO2'])} (primary)")
     print(f"Removed from every classifier set: {v2['removed_from_all_classifier_sets']}")
     print(f"Reason: {v2['reason']}")
+
+    # v3: the Stage 5b sets, written once and frozen; its SHA-256 is recorded next to it.
+    if FEATURE_SETS_V3_JSON.exists():
+        print(f"\n{FEATURE_SETS_V3_JSON.relative_to(ROOT)} already exists (frozen), left unchanged")
+    else:
+        import datetime
+        FEATURE_SETS_V3_JSON.write_text(json.dumps(
+            build_feature_sets_v3(v2, datetime.date.today().isoformat()), indent=2))
+        digest = hashlib.sha256(FEATURE_SETS_V3_JSON.read_bytes()).hexdigest()
+        FEATURE_SETS_V3_SHA.write_text(f"{digest}  feature_sets_v3.json\n")
+        print(f"\nSaved {FEATURE_SETS_V3_JSON.relative_to(ROOT)} (frozen) with SHA-256 {digest}")
+    v3 = load_feature_sets(version=3)
+    print("\nStage 5b feature sets:")
+    for name in ("FULL_v2", "REDUCED", "ELO2", "DIFF"):
+        print(f"  {name}: {len(v3[name])} features")
+        print("    " + ", ".join(v3[name]))
+    print(f"SHA-256 of v3 now: {hashlib.sha256(FEATURE_SETS_V3_JSON.read_bytes()).hexdigest()}")
 
 
 if __name__ == "__main__":

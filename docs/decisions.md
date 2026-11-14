@@ -103,10 +103,72 @@ Both models were refit on 2015-16 to 2024-25 and saved (`models/logreg.joblib` =
 
 ---
 
+## Stage 5b: Random Forest (2026-11-14)
+
+Same protocol as 5a: all choices on the validation seasons (2023-24, 2024-25) with models fitted on 2015-16 to
+2022-23; the 2025-26 test season was not touched; the same noise rule (adopt a change only if the 95%
+paired-bootstrap interval of the log-loss improvement excludes zero, otherwise keep the simpler option).
+
+**Frozen before any forest result was seen:** `data/processed/feature_sets_v3.json`, SHA-256
+`9ca210478c2e9fa25c254e6db557ac7c578a014e366cf4a686eb72fc86b4e946` (also stored in `feature_sets_v3.sha256` and
+checked by `src/check_rf.py`). v1 and v2 are unchanged (hashes checked). Sets: FULL_v2 (33, keeps head-to-head),
+REDUCED (24), ELO2 (2), DIFF (16 level-neutral features: home_X minus away_X for 12 statistics, plus `elo_diff`,
+`abs_elo_diff`, `season_no_fans`, `home_matches_played`). DIFF is same-row arithmetic computed in code, so
+`features.csv` is unchanged.
+
+**Hyperparameters** (grid of 20 on the default FULL_v2 features, 500 trees): `min_samples_leaf` = 80,
+`max_features` = 0.5, `max_depth` = 8. **`min_samples_leaf` = 80 is the edge of the grid**, so a larger value might
+be even better. The whole grid is flat (validation log loss 0.9649 to 0.9759); training log loss falls from 0.93 to
+0.75 as leaves get smaller while validation does not improve (overfitting).
+
+**Validation results (760 matches):**
+
+| Predictor | Accuracy | Log loss |
+|---|---|---|
+| Class frequencies | 43.4% | 1.0675 |
+| Bookmaker | 56.8% | 0.9400 |
+| ELO2 Logistic Regression (primary LR) | 55.4% | 0.9582 |
+| FULL reference Logistic Regression | 55.5% | 0.9577 |
+| Random Forest, default (FULL_v2) | 55.9% | 0.9649 |
+| Random Forest, chosen by the rule (ELO2 features) | 54.6% | 0.9733 |
+
+Random Forest (default) vs ELO2 LR: -0.0067 [-0.0135, +0.0006] (cannot tell apart, leaning worse); vs bookmaker:
+the bookmaker is clearly better by 0.0249 [0.0131, 0.0359]. The forest predicted 0 draws.
+
+| Experiment (vs the default forest) | Result (improvement; positive = better) | Verdict |
+|---|---|---|
+| a. Feature set | REDUCED +0.0002 [-0.0017, +0.0022]; ELO2 -0.0084 [-0.0169, +0.0005]; DIFF +0.0063 [-0.0006, +0.0134] | None clearly better or worse. **By the rule the simplest, ELO2, is chosen** (flagged below) |
+| b. Head-to-head | Without: -0.0005 [-0.0018, +0.0009] | Cannot tell; simpler "without" (moot for the chosen ELO2 set) |
+| c. `season_no_fans` | Exclude: 0.0000 [-0.0012, +0.0013] | Cannot tell; simpler "exclude" (moot for ELO2) |
+| d. Training window | Last 3 (extra row, added because CLAUDE.md asks for it): -0.0047 [-0.0125, +0.0032]; last 5: -0.0012 [-0.0058, +0.0034]; recency weights: -0.0008 [-0.0057, +0.0039] | **Keep all 8 seasons, no weights** (none clearly better) |
+| e. Warm-up rows | Exclude: -0.0000 [-0.0018, +0.0018] | **Keep warm-up rows.** Unlike Logistic Regression, the forest was not affected by `league_avg_goals_prev380` (it is not in the sets) |
+
+**Rule outcome and the problem with it.** The combined configuration is a forest on `elo_diff` + `abs_elo_diff`
+only (validation log loss 0.9733). On identical inputs it is **clearly worse than the ELO2 Logistic Regression**:
+-0.0151 [-0.0239, -0.0056]. "Keep the simpler option" therefore picks a model that a simpler model dominates.
+(The ELO2 interval against the default only just contains zero: upper end +0.0005.) DIFF has the lowest loss
+(0.9586) and is the best set in both validation seasons (0.9227 and 0.9946), but not clearly better.
+
+**Saved models** (not scored on the test set): `models/random_forest.joblib` (the rule's choice, ELO2 features) and
+`models/random_forest_full_reference.joblib` (the default FULL_v2 forest, a reference row for Stage 6, as in 5a),
+0.8 MB each (limit 50 MB). Validation probabilities of all predictors: `reports/val_predictions_5b.csv`.
+
+**Understanding results (diagnostics, not used to choose):** permutation importance on validation puts `elo_diff`
+first by a wide margin (+0.077 log loss when shuffled), then `home_elo` (+0.015); shuffling 12 of 33 features does not hurt
+at all. Impurity importance over-rates noisy, finely-valued shot features (for example `away_shots_against_10`: 0.036
+impurity share, +0.0013 permutation). The partial-dependence curve of the ELO2 forest follows the Logistic Regression
+curve with some zigzags (noise); no clear non-linear shape was found.
+
+---
+
 ## Open decisions
 
-1. Elo `keep` constant: 0.9 (tuned, at the edge of the grid) or 0.75 (EDA-based)? Tied within noise. Low priority.
-2. Stage 5b and 5c: which of FULL (33, with head-to-head) or REDUCED (24) is the primary set for the tree models?
-   To be decided in those stages with the same noise rule; neither contains `league_avg_goals_prev380`.
-3. Stage 5d: test a level-neutral form of the league scoring level (team goals relative to the league average).
-4. Stage 8: player data source (recommendation: the vaastav FPL archive).
+1. **Stage 5b, for you:** which Random Forest goes to Stage 6? (a) the rule's choice (ELO2 features, validation 0.9733),
+   which is clearly worse than the ELO2 Logistic Regression; (b) the default FULL_v2 forest (0.9649, saved as the reference row);
+   (c) DIFF (0.9586, lowest, but picking it now is post-hoc). Recommendation: score (a) and (b) together in Stage 6, as in 5a, and
+   treat DIFF only as a documented alternative unless you decide otherwise before Stage 6.
+2. `min_samples_leaf` = 80 is the edge of the grid. Extend the grid in a later stage?
+3. Elo `keep` constant: 0.9 (tuned, at the edge of the grid) or 0.75 (EDA-based)? Tied within noise. Low priority.
+4. Stage 5c: which feature set is primary for XGBoost (same noise rule, same v3 sets)?
+5. Stage 5d: test a level-neutral form of the league scoring level (team goals relative to the league average).
+6. Stage 8: player data source (recommendation: the vaastav FPL archive).
