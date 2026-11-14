@@ -16,3 +16,6 @@ data/raw/*
 
 # Models and figures are tracked on purpose (small). If one gets very large,
 # add its path here.
+
+# Local Claude Code instructions: kept on this computer only, not pushed
+CLAUDE.md
