@@ -436,3 +436,41 @@ Stage 5c review: the XGBoost to carry to Stage 6, the DIFF diagnostic, the grid,
 ELO2 XGBoost; reference rows: FULL Logistic Regression, FULL_v2 Random Forest, FULL_v2 XGBoost; baselines: always-home-win, class
 frequencies, bookmaker; diagnostics (labelled as such, not competing primaries): DIFF Random Forest and DIFF XGBoost, plus the
 drift check on the test features.
+
+---
+
+## Stage 6: honest model comparison on 2025-26 (2026-11-15)
+
+The plan above was binding. The pre-registration (`reports/stage6_preregistration.md`, hash in `reports/stage6_run_log.json`) was written
+before the test set was loaded. Readings of the prompt, recorded before the run: the "no refit / no early stopping" bullets cover the 10
+scored models and the test season, while the plan itself requires the DIFF refit (early stopping on 2023-24 and 2024-25); "4,000" means
+4,000 bootstrap resamples on one shared table (seed 42); the test loader lives in `stage6.py` and `modeling_utils.py` is unchanged
+(`get_slice("test")` still raises); debugging was done by a dry run on the validation seasons in a scratch folder.
+
+**What was run.** Two diagnostics were refit on 2015-16 to 2024-25 (DIFF Random Forest, 500 trees; DIFF XGBoost, 41 rounds by early stopping on
+2023-24 and 2024-25; audit in `reports/xgb_diff_early_stopping_audit.json`, purpose `final_refit_diff`). The 20 earlier model files are
+byte-identical (`reports/stage6_models_before.json`). The test season (380 matches, 15 Aug 2025 to 24 May 2026, all complete, odds for all)
+was loaded once and 12 predictors were scored.
+
+**Result (log loss, 380 matches).** Bookmaker 1.0185; DIFF RF (diagnostic) 1.0283; Poisson 1.0303; FULL LR 1.0327; **ELO2 LR 1.0335
+(accuracy 49.5%)**; FULL_v2 RF 1.0345; DIFF XGB (diagnostic) 1.0367; FULL_v2 XGB 1.0383; ELO2 XGB 1.0385; ELO2 RF 1.0421; class frequencies
+1.0838; always-home-win 42.6% accuracy. No competitor was significantly better than ELO2 LR (all eight intervals contain zero), so the
+pre-registered primary stands: **a tie, not a victory.** ELO2 LR vs bookmaker +0.0149 [-0.0048, +0.0345] (cannot tell; on validation +0.0182
+[0.0066, 0.0292]). ELO2 vs FULL: LR +0.0008 [-0.0126, +0.0146], RF +0.0077, XGB +0.0002 (ties). Nothing needs the label "post-hoc best".
+
+**Observations (not decisions).** Accuracy 46.8% to 50.0%, below the 50 to 55% expectation (the bookmaker 48.9%): 27.4% of matches were draws
+(training 23.3%); no model picks draws. Drift: 4 of 34 features beyond 3 standard deviations (22 of 34 on validation); the validation drift
+pattern did not repeat (league level +1.08 mean z, against +4.51), so the test season did not stress the Stage 5a amendment. The 2024-25 pattern
+(LR edge in a low-home-win season) repeated in direction only (ELO2 LR best of the three ELO2 primaries, gaps +0.005 and +0.009, inside the noise).
+Poisson on the test season: MAE 0.948 home, 0.843 away, 1.245 total, deviance 1.0724, exact score 12.1%, no rate reached the 3.5 cap.
+
+**Decisions for Stage 7 (recorded, not settled by test results).**
+| # | Decision | Status |
+|---|---|---|
+| 1 | Use the deployed `poisson_stacked` model as saved (all 10 seasons, rho 0, cap 3.5) | settled |
+| 2 | Elo snapshot: Stage 6 holds no evidence about keep 0.9 vs 0.75 (neither table was scored; choosing on the test set would be tuning). Default: keep 0.9, which matches the scale the Poisson weights were learned on | open, for the user in Stage 7 |
+| 3 | Stage 7 mode (frozen pre-season rates or matchweek-by-matchweek updating from simulated results) | open, for the user in Stage 7 |
+| 4 | The test numbers Stage 7 is compared with use real in-season form; a pre-season simulation has less information, so compare like with like | settled |
+
+**Post-run edits (cosmetic only).** Figure 41's legend was redrawn from the saved `drift_test.csv` (`stage6.py replot-drift`); no test data read.
+Report: `reports/stage6_results.md`. Lesson: `docs/learning/06_model_comparison.md`. Checks: `src/check_stage6.py`.

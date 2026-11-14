@@ -1,0 +1,25 @@
+[
+ {
+  "purpose": "final_refit_diff",
+  "n_features": 16,
+  "inner_fit_seasons": [
+   "2015-16",
+   "2016-17",
+   "2017-18",
+   "2018-19",
+   "2019-20",
+   "2020-21",
+   "2021-22",
+   "2022-23"
+  ],
+  "inner_stop_seasons": [
+   "2023-24",
+   "2024-25"
+  ],
+  "inner_fit_last_date": "2023-05-28",
+  "inner_stop_first_date": "2023-08-11",
+  "n_inner_fit": 3040,
+  "n_inner_stop": 760,
+  "n_trees": 41
+ }
+]

@@ -1,0 +1,53 @@
+{
+  "status": "DIAGNOSTIC (not a competing primary): DIFF features, configuration frozen in docs/decisions.md before any test result",
+  "features": [
+    "diff_ppg_5",
+    "diff_gf_5",
+    "diff_ga_5",
+    "diff_ppg_10",
+    "diff_gf_10",
+    "diff_ga_10",
+    "diff_shots_for_10",
+    "diff_shots_against_10",
+    "diff_sot_for_10",
+    "diff_sot_against_10",
+    "diff_venue_gf",
+    "diff_venue_ga",
+    "elo_diff",
+    "abs_elo_diff",
+    "season_no_fans",
+    "home_matches_played"
+  ],
+  "n_estimators": 500,
+  "min_samples_leaf": 80,
+  "max_features": 0.5,
+  "max_depth": 8,
+  "random_state": 42,
+  "window_seasons": [
+    "2015-16",
+    "2016-17",
+    "2017-18",
+    "2018-19",
+    "2019-20",
+    "2020-21",
+    "2021-22",
+    "2022-23",
+    "2023-24",
+    "2024-25"
+  ],
+  "recency_weights": false,
+  "recency_half_life_seasons": null,
+  "include_warmup_rows": true,
+  "drop_2020_21_rows": false,
+  "class_order": {
+    "0": "Home win",
+    "1": "Draw",
+    "2": "Away win"
+  },
+  "n_training_rows": 3800,
+  "scaling": "none (trees do not need it)",
+  "diff_features": "computed in code from features.csv columns (see modeling_utils.add_diff_features)",
+  "chosen_on": "validation seasons ['2023-24', '2024-25'] with models fitted on 2015-16 to 2022-23",
+  "feature_sets_file": "data/processed/feature_sets_v3.json",
+  "file_size_mb": 0.8
+}

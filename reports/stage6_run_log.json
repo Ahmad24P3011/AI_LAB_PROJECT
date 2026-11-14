@@ -1,0 +1,80 @@
+{
+ "mode": "run",
+ "test_set_loads": 1,
+ "seasons_loaded": [
+  "2025-26"
+ ],
+ "n_matches": 380,
+ "preregistration_sha256": "e537dab8d93be8925d29327d1dc42d6f2d3f175a614b480f03a9107bc990b21b",
+ "models_before": {
+  ".gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "feature_scaler.joblib": "2cd1bd21acfc4e5fec48835232bdf536cf78d34b6527da5cf2f05f510d3ce079",
+  "logreg.joblib": "af8fb7c890aa6609fdff1d75fbcefb06df9fbf6ceb666c214ae2106610722536",
+  "logreg_config.json": "45f822fc6a3522f316d330c17f23281b689dcb9691981133665b2fc41aa19554",
+  "logreg_full_reference.joblib": "67b5c7b532c57d4641a335524774bc81228b995bc7ff0690fe655cee177070d0",
+  "logreg_full_reference_config.json": "b252d09f6d6b40cf23ddacc122d853ddb2bf7ea0882cb99075e1d115b27f4593",
+  "poisson_config.json": "32ab942353b28c794749b8d2e0370485b54770c0ba97aac898ea8ce5561c1592",
+  "poisson_stacked.joblib": "67ab5d45269907fa002cc9c1331f979643396748b90140c2efc11e76e8286016",
+  "random_forest.joblib": "1c0853f184d496cef2184384c3ebfbd0f360110cd152a14d80ae921b7425e8cf",
+  "random_forest_config.json": "bf9377dd89b9724c293da597c431fb5607ff94167f0cc3fde71a2ba8a0d64cc4",
+  "random_forest_full_reference.joblib": "6aa7ac85f1f23f46ad264b5371272c4e5f7220413e32e0720e7cc56ff81a8bcd",
+  "random_forest_full_reference_config.json": "7301909339ac619370ee62972de8092d0148463b2bfdec4ce7b0da2bef34835d",
+  "stats_scaler.joblib": "7ccc5dd37c4943eff96da59ce4932682aff570f147ce849456481c71b7742147",
+  "team_encoder.joblib": "015bbe72d8df5b5a2a7b42968bf0f8a06b952d94d95198b8a3a54283087c9bcb",
+  "xgboost.joblib": "ac177fdada83093498d60f82199b02d339de6c931ffeef593e4f31617980edba",
+  "xgboost.ubj": "d6b53babb31aad475d148e243155f0a4bf6366c96190f698a9d438aa40f4241a",
+  "xgboost_config.json": "b5ad50822aae4542037be1499e0c60aa46a52c5a74ab0dbce2d9778dc17c4c61",
+  "xgboost_full_reference.joblib": "ae1d406b522f0dac8acd73b766048ce11a26e4faa28666bb1d056afaa44aaa32",
+  "xgboost_full_reference.ubj": "10d50dbfd7e068d3e89f884ddfb39fed49e8db1bd5c9cb499d27fcf7bdfeff68",
+  "xgboost_full_reference_config.json": "3dd3f5d96168ef26ed1357b8f0744a759c8c875a4afdab46918978372f0bd872"
+ },
+ "models_after": {
+  ".gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "diff_rf.joblib": "060ff7dc7c4be862cdcb214b2fabedc41926cfba8b856722d78181fb0e0d39f8",
+  "diff_rf_config.json": "0daf8c06c5dd6873d4e8b531984bb393edafc3bfb79d2646c7c6ad9560112c71",
+  "diff_xgb.joblib": "f53e4e8c7abcbab0ca044d9f5d0e421ff0ab2cb25b838d02420ece2e5f3b3051",
+  "diff_xgb.ubj": "f3581b10a9bf700a5751eb8e7d66fe00115e154a23c164816ccccefd641b830d",
+  "diff_xgb_config.json": "578775be8bafd4c205f270f8adda25c1034d2d0420a542b18b1de6d27ddef29f",
+  "feature_scaler.joblib": "2cd1bd21acfc4e5fec48835232bdf536cf78d34b6527da5cf2f05f510d3ce079",
+  "logreg.joblib": "af8fb7c890aa6609fdff1d75fbcefb06df9fbf6ceb666c214ae2106610722536",
+  "logreg_config.json": "45f822fc6a3522f316d330c17f23281b689dcb9691981133665b2fc41aa19554",
+  "logreg_full_reference.joblib": "67b5c7b532c57d4641a335524774bc81228b995bc7ff0690fe655cee177070d0",
+  "logreg_full_reference_config.json": "b252d09f6d6b40cf23ddacc122d853ddb2bf7ea0882cb99075e1d115b27f4593",
+  "poisson_config.json": "32ab942353b28c794749b8d2e0370485b54770c0ba97aac898ea8ce5561c1592",
+  "poisson_stacked.joblib": "67ab5d45269907fa002cc9c1331f979643396748b90140c2efc11e76e8286016",
+  "random_forest.joblib": "1c0853f184d496cef2184384c3ebfbd0f360110cd152a14d80ae921b7425e8cf",
+  "random_forest_config.json": "bf9377dd89b9724c293da597c431fb5607ff94167f0cc3fde71a2ba8a0d64cc4",
+  "random_forest_full_reference.joblib": "6aa7ac85f1f23f46ad264b5371272c4e5f7220413e32e0720e7cc56ff81a8bcd",
+  "random_forest_full_reference_config.json": "7301909339ac619370ee62972de8092d0148463b2bfdec4ce7b0da2bef34835d",
+  "stats_scaler.joblib": "7ccc5dd37c4943eff96da59ce4932682aff570f147ce849456481c71b7742147",
+  "team_encoder.joblib": "015bbe72d8df5b5a2a7b42968bf0f8a06b952d94d95198b8a3a54283087c9bcb",
+  "xgboost.joblib": "ac177fdada83093498d60f82199b02d339de6c931ffeef593e4f31617980edba",
+  "xgboost.ubj": "d6b53babb31aad475d148e243155f0a4bf6366c96190f698a9d438aa40f4241a",
+  "xgboost_config.json": "b5ad50822aae4542037be1499e0c60aa46a52c5a74ab0dbce2d9778dc17c4c61",
+  "xgboost_full_reference.joblib": "ae1d406b522f0dac8acd73b766048ce11a26e4faa28666bb1d056afaa44aaa32",
+  "xgboost_full_reference.ubj": "10d50dbfd7e068d3e89f884ddfb39fed49e8db1bd5c9cb499d27fcf7bdfeff68",
+  "xgboost_full_reference_config.json": "3dd3f5d96168ef26ed1357b8f0744a759c8c875a4afdab46918978372f0bd872"
+ },
+ "bootstrap": {
+  "n_boot": 4000,
+  "seed": 42,
+  "n_matches": 380
+ },
+ "verdict": {
+  "primary_won": true,
+  "significantly_better_than_primary": [],
+  "significantly_worse_than_primary": [],
+  "cannot_tell": [
+   "Logistic Regression FULL (reference)",
+   "Random Forest ELO2",
+   "Random Forest FULL_v2 (reference)",
+   "XGBoost ELO2",
+   "XGBoost FULL_v2 (reference)",
+   "Poisson (scoreline grid)",
+   "DIFF Random Forest (diagnostic)",
+   "DIFF XGBoost (diagnostic)"
+  ]
+ },
+ "overround_mean": 0.05515081380640248,
+ "n_predictors": 12
+}

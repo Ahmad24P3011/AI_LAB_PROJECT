@@ -99,3 +99,11 @@ Over 1,000 simulations of a 380-match season, add the points and read the table,
 **Known limits.** The log link grows exponentially with the Elo gap, so rates for extreme mismatches can be too high (the
 largest validation rate was 4.3 goals), which is why the model caps lambda at 3.5 (7 of 760 validation matches were affected). The
 model is trained on all ten training seasons (2015-16 to 2024-25).
+
+## Stage 6 results (model comparison on the 2025-26 test season)
+
+All predictors were scored once on the same 380 test matches, under rules written down before the test set was loaded
+(`reports/stage6_preregistration.md`). The pre-registered primary, the Logistic Regression on the Elo difference, was not beaten by any
+competitor (a statistical tie: log loss 1.0335, accuracy 49.5%; bookmaker 1.0185, 48.9%). Full table, intervals and figures:
+`reports/stage6_results.md`, `reports/stage6_results.csv`, `reports/stage6_bootstrap.csv`, figures 37 to 41. Check with
+`python src/check_stage6.py`.

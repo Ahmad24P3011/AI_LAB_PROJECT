@@ -1,0 +1,13 @@
+,value
+n_capped,0.0
+mae_home,0.9483464010605456
+mae_away,0.8430758122401261
+mae_total,1.245139259234824
+deviance,1.0723968209975303
+exact_score_accuracy,0.12105263157894737
+rounded_score_accuracy,0.0868421052631579
+outcome_of_top_scoreline_accuracy,0.3815789473684211
+outcome_of_summed_grid_accuracy,0.4842105263157895
+draws_by_top_scoreline,263.0
+real_mean_total_goals,2.75
+pred_mean_total_goals,2.81251391978698
