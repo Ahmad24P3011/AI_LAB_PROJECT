@@ -15,6 +15,7 @@
     "is_home"
   ],
   "rho": 0.0,
+  "lambda_cap": 3.5,
   "required_columns": [
     "abs_elo_diff",
     "away_ga_10_rel",
@@ -36,50 +37,58 @@
   "parts": {
     "stacked": {
       "mean": [
-        0.9967520006769334,
-        0.9981565734860887,
-        0.9991245323553662,
-        0.9933173406526521,
+        0.9996590875747574,
+        0.9996120341403507,
+        1.0039899245549042,
+        0.9950052151833968,
         0.0,
-        127.17474618615854,
-        0.0,
+        117.34181625904954,
+        0.1,
         0.5
       ],
       "scale": [
-        0.35885555266517355,
-        0.3550383633120748,
-        0.3589496460737665,
-        0.3177211953067571,
-        157.33361244862147,
-        92.63071595652907,
-        1.0,
+        0.37899294211043905,
+        0.37543315297651275,
+        0.3820436460656735,
+        0.3311409999590084,
+        149.05264958685237,
+        91.91077469964254,
+        0.30000000000000004,
         0.5
       ],
       "params": [
-        -0.04520572395367682,
-        -0.016192936807259275,
-        -0.042510141481902866,
-        0.0833963539683614,
-        0.059629210225461304,
-        0.24810387696354988,
-        -0.01089732965502117,
-        0.0,
-        0.08862001270874421
+        -0.048378478467475235,
+        0.01121816201586077,
+        0.00603249013157214,
+        0.06339159707677007,
+        0.02691662774298868,
+        0.248969819212139,
+        -0.012422335877457119,
+        -0.0023416948828531396,
+        0.09705659938645157
       ]
     }
   },
-  "status": "primary Poisson goal model; refit on the training seasons, not scored on the test season",
+  "status": "primary Poisson goal model; refit on all training seasons, not scored on the test season",
   "window_seasons": [
+    "2015-16",
+    "2016-17",
+    "2017-18",
+    "2018-19",
+    "2019-20",
+    "2020-21",
+    "2021-22",
     "2022-23",
     "2023-24",
     "2024-25"
   ],
   "recency_weights": false,
-  "n_training_rows": 1140,
+  "n_training_rows": 3800,
   "rho_mode": "zero",
   "max_goals_in_grid": 10,
-  "chosen_on": "validation seasons ['2023-24', '2024-25'] with models fitted on 2015-16 to 2022-23",
+  "chosen_on": "validation seasons ['2023-24', '2024-25'] with models fitted on 2015-16 to 2022-23; all-seasons window and the 3.5 cap were set after the review",
   "scaler": "StandardScaler fitted on these training rows only (mean and scale stored per part)",
   "goal_features_file": "data/processed/features_goals.csv",
-  "link": "log"
+  "link": "log",
+  "lambda_cap_note": "predict() limits both expected-goal rates to lambda_cap; predict_uncapped() gives the raw rates"
 }

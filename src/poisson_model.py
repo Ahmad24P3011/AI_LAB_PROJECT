@@ -90,6 +90,7 @@ class PoissonGoalModel:
     def __init__(self, spec):
         self.spec = dict(spec)
         self.rho = 0.0
+        self.lambda_cap = None   # None = no cap. The saved final model uses 3.5 (a safety limit on expected goals)
         self.parts = {}          # name -> {'mean', 'scale', 'params', 'results'}
         self.columns = model_columns(spec)
 
@@ -120,7 +121,14 @@ class PoissonGoalModel:
         return np.exp(part["params"][0] + Z @ part["params"][1:] + offset)
 
     def predict(self, table):
-        """(lambda_home, lambda_away) for every row of `table`."""
+        """(lambda_home, lambda_away) for every row of `table`, limited to `lambda_cap` if the model has one."""
+        lh, la = self.predict_uncapped(table)
+        if self.lambda_cap is not None:
+            lh, la = np.minimum(lh, self.lambda_cap), np.minimum(la, self.lambda_cap)
+        return lh, la
+
+    def predict_uncapped(self, table):
+        """The raw model rates, before any cap (used to count how many predictions the cap changes)."""
         n = len(table)
         parts = design(table, self.spec, with_goals=False)
         if self.spec["kind"] == "independent":
@@ -148,7 +156,7 @@ class PoissonGoalModel:
             path = Path(models_dir) / f"poisson_{name}.joblib"
             joblib.dump(part["results"], path, compress=3)
             files[name] = path.name
-        config = {"spec": self.spec, "columns": self.columns, "rho": self.rho, "required_columns": self.required_columns,
+        config = {"spec": self.spec, "columns": self.columns, "rho": self.rho, "lambda_cap": self.lambda_cap, "required_columns": self.required_columns,
                   "files": files, "is_home_convention": "stacked model: home rows have is_home = 1, away rows 0; "
                   "the away row uses the NEGATIVE of elo_diff (the Elo edge from that team's own point of view)",
                   "parts": {name: {"mean": part["mean"].tolist(), "scale": part["scale"].tolist(),
@@ -161,6 +169,7 @@ class PoissonGoalModel:
         config = json.loads(Path(config_path).read_text())
         model = cls(config["spec"])
         model.rho = config["rho"]
+        model.lambda_cap = config.get("lambda_cap")
         for name, part in config["parts"].items():
             model.parts[name] = {"mean": np.array(part["mean"]), "scale": np.array(part["scale"]),
                                  "params": np.array(part["params"]), "results": None}

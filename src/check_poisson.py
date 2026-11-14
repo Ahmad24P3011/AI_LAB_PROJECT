@@ -15,7 +15,8 @@ from features_goals import (GOAL_FEATURES_CSV, GOAL_FEATURE_COLUMNS, GOAL_PARAMS
                             build_goal_features)
 from modeling_utils import (FEATURE_SETS_V1_JSON, FEATURE_SETS_V2_JSON, FEATURE_SETS_V3_JSON, FIT_SEASONS,
                             TEST_SEASONS, TRAIN_SEASONS, TestSetAccessError, assert_no_test_rows, get_slice)
-from poisson import (ABLATIONS_CSV, CONFIG_PATH, ELO_START_CSV, FINAL_END, FIT_END, PRE_SEASON_CSV, VAL_LAMBDAS_CSV,
+from poisson import (ABLATIONS_CSV, CONFIG_PATH, ELO_START_CSV, FINAL_CSV, FINAL_END, FIT_END, LAMBDA_CAP, PRE_SEASON_075_CSV,
+                     PRE_SEASON_CSV, VAL_LAMBDAS_FINAL_CSV, elo_start_snapshot,
                      evaluate_model, fit_cfg, load_fixtures_2025_26, load_goal_rows, make_cfg)
 from poisson_model import MAX_GOALS, PoissonGoalModel, outcome_probs, score_grid
 
@@ -122,7 +123,7 @@ for rho in (0.0, -0.0294, 0.05):
 independent, mass0 = score_grid(lam_h, lam_a, 0.0)
 assert (mass0 > 0.99).all()
 assert mass0.min() > 0.999 or lam_h.max() > 3
-saved_val = pd.read_csv(VAL_LAMBDAS_CSV)
+saved_val = pd.read_csv(VAL_LAMBDAS_FINAL_CSV)       # the deployed configuration, fitted on the fit seasons
 _, mass_val = score_grid(saved_val["lambda_home"].to_numpy(), saved_val["lambda_away"].to_numpy(), config["rho"])
 assert mass_val.min() > 0.995
 passed(f"the {MAX_GOALS + 1} x {MAX_GOALS + 1} grids sum to 1 (after normalising) for 200 random rate pairs and 3 values of rho; "
@@ -147,18 +148,63 @@ final_cfg = make_cfg(config["spec"], window=None if len(config["window_seasons"]
                      recency=config["recency_weights"], rho_mode=config["rho_mode"])
 refit, used = fit_cfg(final_cfg, train_all, FINAL_END)
 assert len(used) == config["n_training_rows"] and abs(refit.rho - model.rho) < 1e-9
+assert config["lambda_cap"] == LAMBDA_CAP == 3.5 and model.lambda_cap == 3.5 and model.rho == 0.0
+assert list(config["window_seasons"]) == list(TRAIN_SEASONS)        # decided after review: the final model uses all training seasons
+refit.lambda_cap = config["lambda_cap"]
 lh_saved, la_saved = model.predict(val)
 lh_new, la_new = refit.predict(val)
 assert np.allclose(lh_saved, lh_new, atol=1e-9) and np.allclose(la_saved, la_new, atol=1e-9)
 assert np.allclose(outcome_probs(score_grid(lh_saved, la_saved, model.rho)[0]), outcome_probs(score_grid(lh_new, la_new, refit.rho)[0]), atol=1e-9)
 assert (lh_saved > 0).all() and (la_saved > 0).all()
 fit_only, _ = fit_cfg(final_cfg, fit, FIT_END)
+fit_only.lambda_cap = config["lambda_cap"]
 lh_fit_only, la_fit_only = fit_only.predict(val)
 proba_fit_only = outcome_probs(score_grid(lh_fit_only, la_fit_only, fit_only.rho)[0])
 assert np.allclose(lh_fit_only, saved_val["lambda_home"], atol=1e-9) and np.allclose(la_fit_only, saved_val["lambda_away"], atol=1e-9)
 assert np.allclose(proba_fit_only, saved_val[["poisson_p_home", "poisson_p_draw", "poisson_p_away"]].to_numpy(), atol=1e-9)
 passed("the saved model (loaded from JSON and joblib, log link) equals a fresh refit from its config; refitting on the fit seasons "
        "reproduces the saved validation lambdas and the bivariate-grid outcome probabilities")
+
+# ------------------------------------------------------------ the safety cap on lambda
+raw_h, raw_a = model.predict_uncapped(val)
+cap_h, cap_a = model.predict(val)
+assert np.allclose(cap_h, np.minimum(raw_h, 3.5)) and np.allclose(cap_a, np.minimum(raw_a, 3.5))
+assert cap_h.max() <= 3.5 and cap_a.max() <= 3.5 and max(raw_h.max(), raw_a.max()) > 3.5     # the cap really does something
+below = (raw_h <= 3.5) & (raw_a <= 3.5)
+assert np.allclose(cap_h[below], raw_h[below]) and np.allclose(cap_a[below], raw_a[below])      # and changes nothing else
+n_over = int((~below).sum())
+assert n_over <= 15
+loaded_no_cap = PoissonGoalModel.load(CONFIG_PATH)
+loaded_no_cap.lambda_cap = None
+assert loaded_no_cap.predict(val)[0].max() > 3.5                                                # the cap lives in the model, not in a caller
+passed(f"the lambda cap of 3.5 is saved in the config and applied inside predict(): both rates are min(raw, 3.5), rates at or below 3.5 are "
+       f"untouched; the logged count of capped validation matches ({int(pd.read_csv(FINAL_CSV)['val_matches_capped'].iloc[-1])} of 760) comes from the model "
+       f"fitted on the fit seasons (the final model, refit on all ten seasons, would cap {n_over} of them in-sample)")
+
+# ------------------------------------------------------------ the two start-of-season Elo snapshots
+pre9 = pd.read_csv(PRE_SEASON_CSV, parse_dates=["Date"])
+pre75 = pd.read_csv(PRE_SEASON_075_CSV, parse_dates=["Date"])
+assert len(pre75) == len(pre9) == 380 and (pre9[["fixture_id", "HomeTeam", "AwayTeam"]] == pre75[["fixture_id", "HomeTeam", "AwayTeam"]]).all().all()
+assert not set(pre75.columns) & OUTCOME_COLUMNS and list(pre75.columns) == list(pre9.columns)
+elo9, elo75 = elo_start_snapshot(0.9), elo_start_snapshot(0.75)
+saved_elo9 = pd.read_csv(ELO_START_CSV).set_index("team")["elo_start"]
+assert np.allclose(elo9.sort_index(), saved_elo9.sort_index(), atol=1e-9)                          # keep 0.9 = the Stage 4 file
+assert np.allclose(pre75["elo_home_start"], pre75["HomeTeam"].map(elo75)) and np.allclose(pre75["elo_away_start"], pre75["AwayTeam"].map(elo75))
+assert not np.allclose(elo9.sort_index(), elo75.sort_index())
+assert elo75.max() < elo9.max() and elo75.min() >= elo9.min() - 1e-9                                  # keep 0.75 pulls ratings toward 1500
+assert (pre75[["lambda_home", "lambda_away"]] <= 3.5).all().all() and (pre75["lambda_home"] > 0).all()
+assert np.allclose(pre75["league_avg_goals_prev380"], pre9["league_avg_goals_prev380"])
+frame75 = pre75[["fixture_id"]].copy()
+for column in [c for c in model.required_columns if c.endswith("_rel")]:
+    frame75[column] = 1.0
+frame75["elo_diff"], frame75["abs_elo_diff"] = pre75["elo_diff"], pre75["abs_elo_diff"]
+frame75["league_avg_goals_prev380"], frame75["season_no_fans"] = pre75["league_avg_goals_prev380"], 0
+lh75, la75 = model.predict(frame75)
+assert np.allclose(lh75, pre75["lambda_home"], atol=1e-9) and np.allclose(la75, pre75["lambda_away"], atol=1e-9)
+fh, fa = fit_only.predict_uncapped(val)       # the model fitted on the fit seasons only: its count is the one logged in poisson_final_5d.csv
+assert int(((fh > 3.5) | (fa > 3.5)).sum()) == int(pd.read_csv(FINAL_CSV)["val_matches_capped"].iloc[-1])
+passed("two pre-season tables (keep 0.9 and keep 0.75): same 380 fixtures, no result columns, keep 0.9 equals the Stage 4 Elo file, keep 0.75 is "
+       "recomputed from matches before 2025-26 only, and each table's lambdas equal what the saved model predicts from its own Elo snapshot")
 
 # ------------------------------------------------------------ the Stage 7 handoff table
 pre = pd.read_csv(PRE_SEASON_CSV, parse_dates=["Date"])

@@ -343,8 +343,8 @@ because its rates were too low for the higher-scoring seasons (see b). Dixon-Col
 **Confound found by a diagnostic (not used for selection).** Experiments b and c both repair the same problem (the scoring level).
 Repeating the window comparison under the offset configuration: all 8 seasons deviance 1.0805; last 3 +0.0067 [-0.0029, +0.0172];
 last 5 +0.0059 [-0.0002, +0.0117]; recency +0.0037 [-0.0000, +0.0076]: **no window is clearly better once the level is handled.**
-So the clear win of "last 3" in experiment c is mostly the offset's job. The saved model follows the rule (last 3), as agreed;
-all seasons would give almost the same validation score with 3,040 instead of 1,140 training rows. **Open decision below.**
+So the clear win of "last 3" in experiment c is mostly the offset's job. The rule's model uses the last 3 seasons; all seasons gives almost the same validation score with 3,040 instead of 1,140 fit rows.
+**Resolved in the review below: the deployed model uses all seasons.**
 
 **What the model learned.** Per 100 Elo points of advantage a team's expected goals are multiplied by 1.17; at equal strength the home team
 scores 1.19 times as many goals as the away team; the relative attack/defence features add very little beyond Elo (some weights are
@@ -357,25 +357,74 @@ predicted, like the classifiers (macro-F1 0.4152). The model's most likely SCORE
 taking the outcome of that scoreline gives 106 of 175 draws found (recall 0.61, precision 0.24) but accuracy only 41.4%. Exact
 scoreline right in 11.6% of matches (rounded expected score 9.7%); the right outcome with the wrong exact score in 51.4% of matches.
 
-**Stage 7 handoff.** `models/poisson_stacked.joblib`, `models/poisson_config.json`, `src/poisson_model.py`,
+**Stage 7 handoff (as first delivered; the numbers below describe the last-3 model and are superseded by "decisions approved after
+review" further down: all seasons, cap 3.5, two Elo snapshots).** `models/poisson_stacked.joblib`, `models/poisson_config.json`, `src/poisson_model.py`,
 `data/processed/poisson_pre_season_2025-26.csv` (380 fixtures; lambda_home 0.97 to 2.34, lambda_away 0.81 to 1.96; average 2.88 goals per
 match; Elo from `elo_start_of_2025-26.csv`, neutral form features, 2024-25 league level 2.934) and the README section "Poisson goal
 model: how Stage 7 should call it" (inputs, outputs, the two Stage 7 modes). The choice between the frozen pre-season mode and the
 matchweek-by-matchweek mode is left to you in Stage 7 (CLAUDE.md pitfall).
 
+### Stage 5d: decisions approved after review (2026-11-14)
+
+| # | Decision | Status |
+|---|---|---|
+| 1 | **The final Poisson model is fitted on all 10 training seasons (2015-16 to 2024-25, 3,800 matches, 7,600 stacked rows).** The rule's last-3 model is kept in the analysis as "what the rule picked"; the confound diagnostic showed no window was clearly better once the league level is an offset (all 8 seasons 1.0805; last 3 1.0772, +0.0067 [-0.0029, +0.0172] within noise). | settled |
+| 2 | **Predicted lambda is capped at 3.5, inside `PoissonGoalModel.predict()`.** `lambda_cap` is saved in `models/poisson_config.json`, so Stage 7 and the app get it automatically; `predict_uncapped()` returns the raw rates. | settled |
+| 3 | **Dixon-Coles is dropped (rho = 0) and team fixed effects are not used.** Dixon-Coles did not help, probably because Elo-based rates already describe low-score matches well and our sample is small. (The stage's own premise test is consistent with this: on the fit seasons the observed/expected counts of the four lowest scorelines were 1.056, 1.024, 0.876, 0.971, and rho = -0.029 gained only 0.77 log-likelihood. The "because Elo already describes them" part is the group's explanation and was not tested separately.) | settled |
+| 4 | **Two pre-season Elo snapshots for 2025-26** (Stage 7 picks between them): `poisson_pre_season_2025-26.csv` (keep = 0.9, default) and `poisson_pre_season_2025-26_keep075.csv` (keep = 0.75). `features.csv` and `elo_start_of_2025-26.csv` are unchanged. | settled |
+| 5 | **Stage 8 player data source: the vaastav FPL archive** (github.com/vaastav/Fantasy-Premier-League), with two guards: (a) map its team names to the names in our match data (and fail loudly on any team that does not map); (b) use strictly only data dated before each match (no end-of-season totals for earlier matches). Licence and terms to be checked when Stage 8 starts (CLAUDE.md rule 10). | settled |
+
+**What the cap did on validation (model fitted on 2015-16 to 2022-23, scored on 2023-24 and 2024-25, `reports/poisson_final_5d.csv`).**
+7 of 760 matches (0.9%) had a rate above 3.5 (largest uncapped rate 4.34): Arsenal v Luton, Liverpool v Sheffield United, Man City v Ipswich,
+Arsenal v Southampton, Man City v Southampton, Liverpool v Leicester and Liverpool v Southampton, all with an Elo gap of +343 or more (the rule's last-3 model had 5 such matches). In all 7 the favourite scored 1 to 4 goals; the cap
+changed no other prediction.
+
+| Validation (760 matches) | Deviance | Outcome log loss | Accuracy | MAE total goals | Predicted total goals (real 3.107) |
+|---|---|---|---|---|---|
+| Rule's pick: last 3 seasons, uncapped | 1.0772 | 0.9570 | 55.7% | 1.3302 | 3.163 |
+| All 8 seasons, uncapped | 1.0805 | 0.9581 | 55.4% | 1.3251 | 3.125 |
+| **All 8 seasons, capped at 3.5 (deployed configuration)** | **1.0795** | **0.9583** | **55.4%** | **1.3231** | **3.122** |
+
+The cap improves the deviance by 0.0021 [+0.00003, +0.0061]: a tiny gain, at the edge of the noise rule, and not the reason it was chosen
+(it is a safety limit for Stage 7 and the app). The all-8-seasons model scores slightly worse than the last-3 model on validation (1.0805 v
+1.0772), a difference inside the noise. The figures and hand examples in the lesson (32 to 36) describe the rule's last-3 model on the fit
+seasons; the deployed model differs from it only in the window and the cap.
+
+**Deployed model (refit on all 10 training seasons, never scored on 2025-26).** Stacked, level-neutral features, league level as an offset,
+rho = 0, cap 3.5. Coefficients per +1 SD: intercept -0.0484, att 0.0112, opp_def 0.0060, att_venue 0.0634, opp_def_venue 0.0269,
+elo_diff_own 0.2490, abs_elo_diff -0.0124, season_no_fans -0.0023 (now varies, because 2020-21 is in the window; the pre-season rows use 0),
+is_home 0.0971. As before, Elo carries the model: the other weights are small.
+
+**Two Elo snapshots.** Both are computed from matches before 2025-26 only (the 2025-26 rows are loaded without any score). keep = 0.9 equals
+the Stage 4 file exactly (asserted). keep = 0.75 pulls ratings further toward 1500 at every season start, so the spread of the pre-season
+table shrinks: Liverpool 1680 to 1631, Man City 1672 to 1620, Arsenal 1671 to 1621; promoted teams stay at 1400.
+
+| Pre-season table | lambda_home | lambda_away | Average total goals | Rates changed by the cap |
+|---|---|---|---|---|
+| keep 0.9 (default) | 0.94 to 2.41 | 0.78 to 1.98 | 2.879 | 0 |
+| keep 0.75 | 1.03 to 2.23 | 0.85 to 1.84 | 2.865 | 0 |
+
+**Caveat for Stage 7 when choosing between them.** The Poisson model learned its Elo weight from the Elo ratings built with keep = 0.9
+(those are the `elo_diff` values in the training rows). Feeding it keep = 0.75 ratings is a change of input scale, not a retrained model: the
+two snapshots differ only in how strongly last season's strength is carried over, but the model's Elo coefficient was calibrated on keep = 0.9
+ratings. Both are legitimate pre-season inputs; neither uses any 2025-26 result. If Stage 7 wants a like-for-like comparison, the matchweek
+mode should update Elo with the same `keep` that the features used.
+
+**Stage 7 handoff (updated).** `models/poisson_config.json` (now with `lambda_cap`), `models/poisson_stacked.joblib`, `src/poisson_model.py`,
+the two pre-season tables, and the README section. A rate of 3.5 or more can still appear only if the Stage 7 simulation builds its own features
+outside `predict()`; call `model.predict` and the cap is applied.
+
 ---
 
 ## Open decisions
 
-1. **Stage 5d, for you:** the rule picked the last 3 seasons, but a diagnostic shows no window is clearly better once the league level
-   is handled by the offset. Keep the rule's model (3 seasons), or refit on all seasons (same offset; recommended as simpler and
-   supported by the diagnostic)? Switching only means re-running `src/poisson.py` with the all-seasons window and regenerating the saved
-   files and the pre-season table.
-2. Cap the rate for extreme Elo gaps (for example at 3.5 goals) before Stage 7, or accept the overshoot?
-3. Dixon-Coles (rho = 0 in the saved model) and team fixed effects were not adopted. Confirm.
-4. Stage 7 mode: frozen pre-season, or matchweek-by-matchweek updating (to be chosen in Stage 7).
-5. Elo `keep` constant: 0.9 (tuned, at the edge of the grid) or 0.75 (EDA-based)? Tied within noise. Low priority.
-6. Stage 8: player data source (recommendation: the vaastav FPL archive).
+1. **Stage 7 mode:** frozen pre-season rates, or matchweek-by-matchweek updating from simulated results (to be chosen in Stage 7, with the
+   explanation of the trade-off, CLAUDE.md pitfall).
+2. **Stage 7: which Elo snapshot** (keep 0.9 or 0.75) to use for the pre-season table, see the caveat above. Low priority, tied within noise.
+3. **Stage 8:** confirm the licence and terms of the vaastav archive, and build the team-name map, when the stage starts.
+
+(Closed in the Stage 5d review: final window (all seasons), the lambda cap (3.5), Dixon-Coles and team fixed effects (not adopted), the two Elo
+snapshots, and the Stage 8 data source.)
 
 (Closed in Stage 5d: the level-neutral form of the league scoring level. Tested: raw vs relative goal averages made no difference; the league
 level works as a fixed offset, not as a free feature.)

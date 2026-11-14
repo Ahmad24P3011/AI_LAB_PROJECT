@@ -20,7 +20,7 @@ import seaborn as sns
 from sklearn.linear_model import PoissonRegressor
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from features import MATCHES_CSV
+from features import MATCHES_CSV, PARAMS_JSON, elo_at_season_start
 from features_goals import GOAL_FEATURES_CSV
 from logreg import (BLUE, FIG_DIR, GREEN, GREY, ORANGE, VERMILION, calibration_points, decide,
                     print_metrics_block, save_figure, section, setup_style)
@@ -34,9 +34,13 @@ ROOT = Path(__file__).resolve().parent.parent
 FIT_END, FINAL_END = FIT_SEASONS[-1], TRAIN_SEASONS[-1]
 ABLATIONS_CSV = ROOT / "reports" / "ablations_poisson.csv"
 VAL_LAMBDAS_CSV = ROOT / "reports" / "val_lambdas_5d.csv"
+VAL_LAMBDAS_FINAL_CSV = ROOT / "reports" / "val_lambdas_5d_final.csv"
+FINAL_CSV = ROOT / "reports" / "poisson_final_5d.csv"
 CONFIG_PATH = ROOT / "models" / "poisson_config.json"
 PRE_SEASON_CSV = ROOT / "data" / "processed" / "poisson_pre_season_2025-26.csv"
+PRE_SEASON_075_CSV = ROOT / "data" / "processed" / "poisson_pre_season_2025-26_keep075.csv"
 ELO_START_CSV = ROOT / "data" / "processed" / "elo_start_of_2025-26.csv"
+LAMBDA_CAP = 3.5          # safety limit on expected goals per team (decided after the Stage 5d review)
 RAW_COLUMNS = ["home_gf_10", "home_ga_10", "away_gf_10", "away_ga_10",
                "home_venue_gf", "home_venue_ga", "away_venue_gf", "away_venue_ga"]
 ALPHA_GRID = [0.0001, 0.001, 0.01, 0.1, 1.0]
@@ -441,12 +445,28 @@ def assemble_final(default_cfg, decisions):
 
 
 # ------------------------------------------------------------ the Stage 7 handoff
-def build_pre_season(model, train_all):
+def elo_start_snapshot(keep):
+    """Start-of-2025-26 Elo ratings for a given `keep` constant (the other Elo constants stay as tuned in Stage 4).
+    Only matches BEFORE 2025-26 are used for the ratings. The 2025-26 rows are loaded WITHOUT any result or score
+    (only the team names, which tell us who is promoted), so no test outcome is ever in memory."""
+    fixture_columns = ["season", "Date", "HomeTeam", "AwayTeam"]
+    parts = []
+    for chunk in pd.read_csv(MATCHES_CSV, parse_dates=["Date"], chunksize=500):
+        is_test = chunk["season"] == "2025-26"
+        parts.append(pd.concat([chunk[~is_test], chunk.loc[is_test, fixture_columns]]))
+    matches = pd.concat(parts, ignore_index=True)
+    assert matches.loc[matches["season"] == "2025-26", "result"].isna().all()
+    params = dict(json.loads(PARAMS_JSON.read_text())["elo"], keep=keep)
+    return elo_at_season_start(matches, "2025-26", params).set_index("team")["elo_start"]
+
+
+def build_pre_season(model, train_all, elo=None):
     """lambda_home and lambda_away for every 2025-26 FIXTURE, from the start-of-season Elo snapshot and a
     start-of-season configuration (empty current-season history: the relative form features are neutral = 1.0)."""
     assert model.spec["level"] == "rel", "the pre-season table needs the level-neutral features"
     fixtures = load_fixtures_2025_26()
-    elo = pd.read_csv(ELO_START_CSV).set_index("team")["elo_start"]
+    if elo is None:
+        elo = pd.read_csv(ELO_START_CSV).set_index("team")["elo_start"]
     last_380 = train_all.sort_values("Date").tail(380)                      # the 2024-25 season = the previous 380 matches
     league_level = float((last_380["home_goals"] + last_380["away_goals"]).mean())
     table = fixtures.copy()
@@ -637,21 +657,76 @@ def main():
     out.to_csv(VAL_LAMBDAS_CSV, index=False)
     print(f"Saved {VAL_LAMBDAS_CSV.relative_to(ROOT)} ({len(out)} validation matches; rates from the model fitted on the fit seasons)")
     train_all = get_slice("train_all", rows)
-    model, used = fit_cfg(final_cfg, train_all, FINAL_END)
+
+    section("Decisions after the review: all 8 seasons, rho = 0, lambda capped at 3.5")
+    rule_final = final                                        # the rule's pick (last 3 seasons), analysed above
+    deploy_cfg = make_cfg(final_cfg["spec"], window=None, recency=False, rho_mode="zero")
+    deploy = score_cfg(deploy_cfg, fit_rows, val_rows)        # fitted on the fit seasons, scored on validation
+    uncapped = deploy["model"].predict_uncapped(val_rows)
+    deploy["model"].lambda_cap = LAMBDA_CAP
+    capped = evaluate_model(deploy["model"], val_rows)
+    over = (uncapped[0] > LAMBDA_CAP) | (uncapped[1] > LAMBDA_CAP)
+    n_capped = int(over.sum())
+    r_lh, r_la = rule_final["model"].predict_uncapped(val_rows)
+    print(f"Validation matches with a rate above {LAMBDA_CAP} (all-8 model, fitted on the fit seasons): {n_capped} of {len(val_rows)}; "
+          f"largest uncapped rate {max(uncapped[0].max(), uncapped[1].max()):.3f}")
+    print(f"  (the rule's last-3 model had {int(((r_lh > LAMBDA_CAP) | (r_la > LAMBDA_CAP)).sum())} such matches, "
+          f"largest {max(r_lh.max(), r_la.max()):.3f})")
+    for _, r in val_rows[over].iterrows():
+        print(f"    {r['Date'].date()} {r['HomeTeam']} v {r['AwayTeam']}: elo_diff {r['elo_diff']:.0f}, "
+              f"real score {int(r['home_goals'])}-{int(r['away_goals'])}")
+    print(f"{'':36} {'deviance':>9} {'log loss':>9} {'accuracy':>9} {'MAE total':>10} {'pred. total goals':>18}")
+    variants = (("rule: last 3 seasons, uncapped", rule_final), ("all 8 seasons, uncapped", deploy),
+                (f"all 8 seasons, capped at {LAMBDA_CAP} (deployed)", capped))
+    for label, ev in variants:
+        print(f"{label:36} {ev['dev_mean']:9.4f} {ev['metrics']['log_loss']:9.4f} {ev['metrics']['accuracy']:9.4f} "
+              f"{ev['mae_total']:10.4f} {float((ev['lh'] + ev['la']).mean()):18.3f}")
+    cap_stats = paired_bootstrap(deploy["dev_match"], capped["dev_match"])
+    print(f"Cap effect on deviance (capped better by): {cap_stats['mean_diff']:+.5f} [{cap_stats['ci_low']:+.5f}, {cap_stats['ci_high']:+.5f}]")
+    pd.DataFrame([{"model": label, "val_deviance": ev["dev_mean"], "val_log_loss": ev["metrics"]["log_loss"],
+                   "val_accuracy": ev["metrics"]["accuracy"], "val_mae_total": ev["mae_total"],
+                   "val_matches_capped": n_capped if "capped" in label else 0} for label, ev in variants]).to_csv(FINAL_CSV, index=False)
+
+    section("Saving validation rates, the final model and the Stage 7 handoff")
+    for path, ev, note in ((VAL_LAMBDAS_CSV, rule_final, "the rule's last-3 model (used for the analysis and figures above)"),
+                           (VAL_LAMBDAS_FINAL_CSV, capped, "the deployed configuration (all 8 seasons, capped), fitted on the fit seasons")):
+        out = pd.DataFrame({"match_id": val_rows["match_id"], "lambda_home": ev["lh"], "lambda_away": ev["la"]})
+        for column, values in zip(PROBA_COLUMNS, ev["proba"].T):
+            out[f"poisson_{column}"] = values
+        out.to_csv(path, index=False)
+        print(f"Saved {path.relative_to(ROOT)}: {note}")
+    model, used = fit_cfg(deploy_cfg, train_all, FINAL_END)
+    model.lambda_cap = LAMBDA_CAP
     model.save(CONFIG_PATH, ROOT / "models", extra={
-        "status": "primary Poisson goal model; refit on the training seasons, not scored on the test season",
-        "window_seasons": window_seasons(final_cfg["window"], FINAL_END), "recency_weights": final_cfg["recency"],
-        "n_training_rows": len(used), "rho_mode": final_cfg["rho_mode"], "max_goals_in_grid": MAX_GOALS,
-        "chosen_on": f"validation seasons {VAL_SEASONS} with models fitted on {FIT_SEASONS[0]} to {FIT_SEASONS[-1]}",
+        "status": "primary Poisson goal model; refit on all training seasons, not scored on the test season",
+        "window_seasons": window_seasons(deploy_cfg["window"], FINAL_END), "recency_weights": deploy_cfg["recency"],
+        "n_training_rows": len(used), "rho_mode": deploy_cfg["rho_mode"], "max_goals_in_grid": MAX_GOALS,
+        "chosen_on": f"validation seasons {VAL_SEASONS} with models fitted on {FIT_SEASONS[0]} to {FIT_SEASONS[-1]}; "
+                     "all-seasons window and the 3.5 cap were set after the review",
         "scaler": "StandardScaler fitted on these training rows only (mean and scale stored per part)",
-        "goal_features_file": "data/processed/features_goals.csv", "link": "log"})
+        "goal_features_file": "data/processed/features_goals.csv", "link": "log",
+        "lambda_cap_note": "predict() limits both expected-goal rates to lambda_cap; predict_uncapped() gives the raw rates"})
     print(f"Saved models/poisson_*.joblib and {CONFIG_PATH.relative_to(ROOT)}: spec {model.spec}, rho {model.rho:+.4f}, "
-          f"{len(used)} rows ({used['season'].min()} to {used['season'].max()})")
-    pre = build_pre_season(model, train_all)
-    pre.to_csv(PRE_SEASON_CSV, index=False)
-    print(f"Saved {PRE_SEASON_CSV.relative_to(ROOT)}: {len(pre)} fixtures; lambda_home {pre['lambda_home'].min():.2f} to {pre['lambda_home'].max():.2f}, "
-          f"lambda_away {pre['lambda_away'].min():.2f} to {pre['lambda_away'].max():.2f}; league level used {pre['league_avg_goals_prev380'].iloc[0]:.3f}")
-    print(pre.head(4).drop(columns="Date").round(3).to_string(index=False))
+          f"cap {model.lambda_cap}, {len(used)} rows ({used['season'].min()} to {used['season'].max()})")
+    print("Deployed coefficients (log lambda per +1 SD):")
+    print(model.coefficients()["stacked"].round(4).to_string())
+    elo_090, elo_075 = elo_start_snapshot(0.9), elo_start_snapshot(0.75)
+    saved_090 = pd.read_csv(ELO_START_CSV).set_index("team")["elo_start"]
+    assert (elo_090.sort_index() - saved_090.sort_index()).abs().max() < 1e-9, "keep=0.9 snapshot must equal the Stage 4 file"
+    for label, elo, path in (("keep = 0.9 (default)", elo_090, PRE_SEASON_CSV), ("keep = 0.75", elo_075, PRE_SEASON_075_CSV)):
+        pre = build_pre_season(model, train_all, elo)
+        pre.to_csv(path, index=False)
+        neutral = pre.assign(**{c: 1.0 for c in model.required_columns if c.endswith("_rel")})
+        raw_h, raw_a = model.predict_uncapped(neutral)
+        print(f"\nSaved {path.relative_to(ROOT)} [{label}]: {len(pre)} fixtures; lambda_home {pre['lambda_home'].min():.2f} to "
+              f"{pre['lambda_home'].max():.2f}, lambda_away {pre['lambda_away'].min():.2f} to {pre['lambda_away'].max():.2f}; "
+              f"average total goals {(pre['lambda_home'] + pre['lambda_away']).mean():.3f}; "
+              f"rates changed by the cap: {int((raw_h > LAMBDA_CAP).sum() + (raw_a > LAMBDA_CAP).sum())}; "
+              f"league level {pre['league_avg_goals_prev380'].iloc[0]:.3f}")
+        print(pre.head(3).drop(columns="Date").round(3).to_string(index=False))
+    both = pd.DataFrame({"keep 0.9": elo_090, "keep 0.75": elo_075}).sort_values("keep 0.9", ascending=False)
+    print("\nStart-of-2025-26 Elo under the two keep values (top 4 and bottom 4 teams):")
+    print(pd.concat([both.head(4), both.tail(4)]).round(1).to_string())
 
 
 if __name__ == "__main__":
