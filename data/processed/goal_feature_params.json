@@ -1,0 +1,8 @@
+{
+  "goal_defaults": {
+    "per_team": 1.415,
+    "home": 1.551842105263158,
+    "away": 1.2781578947368422
+  },
+  "min_league_matches": 20
+}

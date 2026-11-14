@@ -286,11 +286,99 @@ keeps falling to 0.896. Probabilities are not over-sharpened: the largest predic
 
 ---
 
+## Stage 5d: Poisson regression for goals (2026-11-14)
+
+Same protocol: all choices on the validation seasons (2023-24, 2024-25), models fitted on 2015-16 to 2022-23, the 2025-26 test
+season not used for fitting or scoring. The one place the 2025-26 file is opened is `load_fixtures_2025_26()` in `src/poisson.py`:
+it reads the FIXTURE LIST only (match id, date, the two team names, via `usecols`); no score or result column is ever loaded
+(checked in `src/check_poisson.py`). Stage 7 needs the fixtures.
+
+**Wording corrected at the start of the stage:**
+- EDA 03 showed an *excess* of 0-goal and 4+ goal results and variance 1.13 to 1.15 times the mean (over-dispersion), for each side's
+  goals separately. It did not measure the joint scores 0-0 and 1-1, so "under-dispersion at 0-0 and 1-1" was not an EDA finding;
+  the Dixon-Coles premise was tested in this stage instead (see below).
+- "Cross-validated deviance" is a single held-out validation split, not cross-validation.
+- `league_avg_goals_prev380` "exactly the signal a goal model should track" is a hypothesis, tested in experiment b.
+- "League average over the same window": the league average of the same quantity over the same date range as the team's own window;
+  for venue features goals conceded are divided by the OTHER side's scoring average (what a home team concedes is what away teams
+  score). Every `_rel` feature is built from the same prior matches as its parent (all 8 parents recomputed and compared with
+  `features.csv`; perturbation tests pass). `features.csv` is unchanged; `features_goals.csv` has the same 4,180 rows.
+- P(3+ goals) at lambda 1.55 is 0.204 (not 0.21). The "bivariate Poisson grid" is the product of two independent Poissons
+  (plus Dixon-Coles), not the Karlis-Ntzoufras bivariate Poisson with a shared component. `is_home` only exists in the stacked table
+  (built in code), not in the one-row-per-match CSV.
+- "Simpler" = fewer parameters (stacked B before independent A); primary metric = Poisson deviance per match for changes to the
+  rates and match-outcome log loss for Dixon-Coles (it changes only the joint, not the rates).
+
+**Three models on the validation seasons (760 matches).** Deviance is per team-goal count (lower is better):
+
+| Model | MAE home / away / total | Deviance | Outcome log loss | Accuracy | Draws predicted |
+|---|---|---|---|---|---|
+| A independent Poisson | 0.984 / 0.896 / 1.360 | 1.1132 | 0.9565 | 55.7% | 0 |
+| B stacked Poisson | 0.982 / 0.897 / 1.356 | 1.1140 | 0.9566 | 55.4% | 0 |
+| C stacked + Dixon-Coles (rho -0.0294) | same rates as B | 1.1140 | 0.9567 | 55.4% | 0 |
+| ELO2 Logistic Regression | n/a | n/a | 0.9582 | 55.4% | 0 |
+| Bookmaker | n/a | n/a | 0.9400 | 56.8% | 0 |
+
+A vs B by deviance: B better by -0.0017 [-0.0114, +0.0075] (cannot tell, so the simpler B). C vs B by outcome log loss: -0.0002
+[-0.0012, +0.0010] (cannot tell, so rho = 0). All three Poisson variants vs ELO2 LR: about +0.0016 [-0.0038, +0.0072]
+(cannot tell); vs the bookmaker the bookmaker is clearly better by about 0.0166 [0.0055, 0.0276].
+
+**Dixon-Coles premise, tested.** Observed / expected counts under independent Poisson, fit seasons (in sample): 0-0 1.056, 1-0 1.024,
+0-1 0.876, 1-1 0.971: close to 1, and rho = -0.029 improves the fit-season log-likelihood by only 0.77 (likelihood-ratio statistic
+1.53, below 3.84). On the validation seasons the default model expected far more 0-0 than happened (27 observed against 54 expected)
+because its rates were too low for the higher-scoring seasons (see b). Dixon-Coles is not adopted.
+
+| Experiment (vs the chosen B) | Result (improvement; positive = better) | Verdict |
+|---|---|---|
+| a. Features | raw goal averages: -0.0020 [-0.0077, +0.0035] (deviance) | Cannot tell: the drift of raw goal averages does not hurt this model by itself (keep level-neutral) |
+| b. League scoring level | left out: +0.0324 [+0.0227, +0.0430]; as a fixed offset (log league level, coefficient 1): +0.0670 [+0.0280, +0.1097] | **Including `league_avg_goals_prev380` as a free feature HURTS** (its fitted weight is slightly negative, and it extrapolates 4.5+ standard deviations in validation); the **offset is clearly best** |
+| c. Training window (extra row last 3 included) | last 3: +0.0717 [+0.0445, +0.1005]; last 5: +0.0510 [+0.0350, +0.0674]; recency: +0.0499 [+0.0344, +0.0665] | **Last 3 seasons clearly better than the default, by the rule** (see the confound below) |
+| d. Dixon-Coles rho | fitted on the fit seasons: -0.0002 [-0.0012, +0.0010]; diagnostic fit + validation: rho -0.0313, same log loss | **rho = 0** |
+| e. Team fixed effects (L2, alpha 1) | +0.0051 [-0.0211, +0.0306] deviance, but outcome log loss worse (0.9725 vs 0.9566); the same penalised model without team effects 1.1116 vs 1.1115 with them | **Elo and relative-goal features alone suffice**; alpha is at the edge of its grid and was chosen on validation |
+
+**Chosen by the rule:** stacked Poisson (log link), level-neutral `_rel` features, league level as a fixed offset, trained on the last
+3 seasons, rho = 0. Combined validation deviance 1.0772 against 1.1140 for the default (+0.0736 [+0.0303, +0.1190]); outcome log loss
+0.9570 (default 0.9566). Average predicted total goals on validation 3.163 against 3.107 real (default model 2.662).
+
+**Confound found by a diagnostic (not used for selection).** Experiments b and c both repair the same problem (the scoring level).
+Repeating the window comparison under the offset configuration: all 8 seasons deviance 1.0805; last 3 +0.0067 [-0.0029, +0.0172];
+last 5 +0.0059 [-0.0002, +0.0117]; recency +0.0037 [-0.0000, +0.0076]: **no window is clearly better once the level is handled.**
+So the clear win of "last 3" in experiment c is mostly the offset's job. The saved model follows the rule (last 3), as agreed;
+all seasons would give almost the same validation score with 3,040 instead of 1,140 training rows. **Open decision below.**
+
+**What the model learned.** Per 100 Elo points of advantage a team's expected goals are multiplied by 1.17; at equal strength the home team
+scores 1.19 times as many goals as the away team; the relative attack/defence features add very little beyond Elo (some weights are
+tiny or have the "wrong" sign because the features overlap). The log link makes rates grow exponentially with the Elo gap: the largest
+validation rate is 4.3 goals (Man City v Southampton, Elo gap +449), and the top calibration group overshoots (predicted 2.74, actual 2.35
+home goals).
+
+**Draws and scores.** The highest draw probability is 0.265 (mean 0.212, real rate 0.230), so Draw is never the top outcome: 0 draws
+predicted, like the classifiers (macro-F1 0.4152). The model's most likely SCORELINE is a draw (usually 1-1) in 445 of 760 matches;
+taking the outcome of that scoreline gives 106 of 175 draws found (recall 0.61, precision 0.24) but accuracy only 41.4%. Exact
+scoreline right in 11.6% of matches (rounded expected score 9.7%); the right outcome with the wrong exact score in 51.4% of matches.
+
+**Stage 7 handoff.** `models/poisson_stacked.joblib`, `models/poisson_config.json`, `src/poisson_model.py`,
+`data/processed/poisson_pre_season_2025-26.csv` (380 fixtures; lambda_home 0.97 to 2.34, lambda_away 0.81 to 1.96; average 2.88 goals per
+match; Elo from `elo_start_of_2025-26.csv`, neutral form features, 2024-25 league level 2.934) and the README section "Poisson goal
+model: how Stage 7 should call it" (inputs, outputs, the two Stage 7 modes). The choice between the frozen pre-season mode and the
+matchweek-by-matchweek mode is left to you in Stage 7 (CLAUDE.md pitfall).
+
+---
+
 ## Open decisions
 
-1. Elo `keep` constant: 0.9 (tuned, at the edge of the grid) or 0.75 (EDA-based)? Tied within noise. Low priority.
-2. Stage 5d: test a level-neutral form of the league scoring level (team goals relative to the league average).
-3. Stage 8: player data source (recommendation: the vaastav FPL archive).
+1. **Stage 5d, for you:** the rule picked the last 3 seasons, but a diagnostic shows no window is clearly better once the league level
+   is handled by the offset. Keep the rule's model (3 seasons), or refit on all seasons (same offset; recommended as simpler and
+   supported by the diagnostic)? Switching only means re-running `src/poisson.py` with the all-seasons window and regenerating the saved
+   files and the pre-season table.
+2. Cap the rate for extreme Elo gaps (for example at 3.5 goals) before Stage 7, or accept the overshoot?
+3. Dixon-Coles (rho = 0 in the saved model) and team fixed effects were not adopted. Confirm.
+4. Stage 7 mode: frozen pre-season, or matchweek-by-matchweek updating (to be chosen in Stage 7).
+5. Elo `keep` constant: 0.9 (tuned, at the edge of the grid) or 0.75 (EDA-based)? Tied within noise. Low priority.
+6. Stage 8: player data source (recommendation: the vaastav FPL archive).
+
+(Closed in Stage 5d: the level-neutral form of the league scoring level. Tested: raw vs relative goal averages made no difference; the league
+level works as a fixed offset, not as a free feature.)
 
 (Closed in the Stage 5b review: the forest to carry to Stage 6, the saved reference forest, and the leaf-size grid. Closed in the
 Stage 5c review: the XGBoost to carry to Stage 6, the DIFF diagnostic, the grid, the monotone construction and the extras.)

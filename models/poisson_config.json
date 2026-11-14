@@ -1,0 +1,85 @@
+{
+  "spec": {
+    "kind": "stacked",
+    "level": "rel",
+    "league": "offset"
+  },
+  "columns": [
+    "att",
+    "opp_def",
+    "att_venue",
+    "opp_def_venue",
+    "elo_diff_own",
+    "abs_elo_diff",
+    "season_no_fans",
+    "is_home"
+  ],
+  "rho": 0.0,
+  "required_columns": [
+    "abs_elo_diff",
+    "away_ga_10_rel",
+    "away_gf_10_rel",
+    "away_venue_ga_rel",
+    "away_venue_gf_rel",
+    "elo_diff",
+    "home_ga_10_rel",
+    "home_gf_10_rel",
+    "home_venue_ga_rel",
+    "home_venue_gf_rel",
+    "league_avg_goals_prev380",
+    "season_no_fans"
+  ],
+  "files": {
+    "stacked": "poisson_stacked.joblib"
+  },
+  "is_home_convention": "stacked model: home rows have is_home = 1, away rows 0; the away row uses the NEGATIVE of elo_diff (the Elo edge from that team's own point of view)",
+  "parts": {
+    "stacked": {
+      "mean": [
+        0.9967520006769334,
+        0.9981565734860887,
+        0.9991245323553662,
+        0.9933173406526521,
+        0.0,
+        127.17474618615854,
+        0.0,
+        0.5
+      ],
+      "scale": [
+        0.35885555266517355,
+        0.3550383633120748,
+        0.3589496460737665,
+        0.3177211953067571,
+        157.33361244862147,
+        92.63071595652907,
+        1.0,
+        0.5
+      ],
+      "params": [
+        -0.04520572395367682,
+        -0.016192936807259275,
+        -0.042510141481902866,
+        0.0833963539683614,
+        0.059629210225461304,
+        0.24810387696354988,
+        -0.01089732965502117,
+        0.0,
+        0.08862001270874421
+      ]
+    }
+  },
+  "status": "primary Poisson goal model; refit on the training seasons, not scored on the test season",
+  "window_seasons": [
+    "2022-23",
+    "2023-24",
+    "2024-25"
+  ],
+  "recency_weights": false,
+  "n_training_rows": 1140,
+  "rho_mode": "zero",
+  "max_goals_in_grid": 10,
+  "chosen_on": "validation seasons ['2023-24', '2024-25'] with models fitted on 2015-16 to 2022-23",
+  "scaler": "StandardScaler fitted on these training rows only (mean and scale stored per part)",
+  "goal_features_file": "data/processed/features_goals.csv",
+  "link": "log"
+}
