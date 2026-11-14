@@ -514,9 +514,17 @@ the simulated 5th to 95th percentile (outside: Man United 71 vs 69, Wolves 20 vs
 gives Arsenal 70.0 because it averages over the seasons Arsenal did not win. Ceiling: one-match-ahead Poisson log loss 1.0303 / accuracy 48.4% vs simulation 1.0500 /
 46.1%: gap +0.0197 [-0.0005, +0.0395] (at the edge of the noise); total-goals deviance 1.0417 vs 1.0345 (the simulation is as good on goal counts).
 
-**Open for review (none changes a number above).**
+**Open for review (none changes a number above; resolved in "Stage 7: decisions approved after review" below).**
 1. The bug options A / B / C above.
 2. League level: 2.83 (training mean, held constant) vs the 2024-25 value 2.934 used by the Stage 5d pre-season table. Real 2025-26 scored 2.75 (not used).
 3. Start-of-season form: neutral for all teams (as specified) vs carrying each team's real last-10 matches of 2024-25 (leakage-free, closer to how the model was trained).
 4. Independent home/away goal draws (standard) vs the small negative correlation of -0.14 measured on the training seasons.
 5. Report framing: the simulation ranks Liverpool as favourite; the real champion Arsenal had a 19.5% simulated title chance (3rd by P(title)).
+
+### Stage 7: decisions approved after review (2026-11-15)
+
+| # | Decision | Status |
+|---|---|---|
+| 1 | **The `_rel` column swap in `src/features_goals.py` is documented, NOT fixed** (option A). Why: the bug was consistent across training, validation, Stage 6 and the simulation; fixing it would retroactively break the pre-registered Stage 6 result; its measured effect on the validation seasons is +0.0006 (deviance, [-0.0012, +0.0024]), immaterial. The simulator keeps `LEGACY_SWAPPED_LABELS = True`. Details: the Stage 7 section above and `reports/poisson_layout_diagnostic.csv` | settled |
+| 2 | **Future work** (not done in this project): (a) start the simulator from each team's real 2024-25 form (last-10 matches carried over) instead of neutral defaults: it is information available at the start of the season and might improve the forecasts; (b) model the correlated home/away goals (observed correlation -0.14 on the training seasons) with a bivariate copula or the Dixon-Coles approach; independence is kept for simplicity | recorded |
+| 3 | League level 2.83, Elo `keep` 0.9 and the other Stage 7 choices stay as run | settled |
