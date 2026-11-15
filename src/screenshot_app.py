@@ -10,7 +10,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 FIGURES = Path(__file__).resolve().parent.parent / "reports" / "figures"
-SHOTS = [("", "46_app_screenshot_match.png", 1900), ("season_table", "47_app_screenshot_season.png", 2700)]
+SHOTS = [("", "46_app_screenshot_match.png", 2400), ("season_table", "47_app_screenshot_season.png", 2700)]
 
 
 def main(port="8599"):

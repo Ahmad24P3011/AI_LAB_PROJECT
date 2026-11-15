@@ -6,6 +6,7 @@ Everything is read from files that earlier stages saved:
   models/poisson_config.json                                   the Poisson goal model (numbers only, no pickle needed)
   data/processed/team_state_end_of_2025-26.csv                 each team's Elo and last-10 goal form (app/team_state_builder.py)
   data/app/bookmaker_2025-26.csv                               bookmaker probabilities with the margin removed
+  data/app/real_results_2025-26.csv                            the real score of each 2025-26 fixture (display only)
 """
 import sys
 import warnings
@@ -21,6 +22,7 @@ from poisson_model import PoissonGoalModel, outcome_probs, score_grid, top_score
 MODELS_DIR = ROOT / "models"
 TEAM_STATE_CSV = ROOT / "data" / "processed" / "team_state_end_of_2025-26.csv"
 BOOKMAKER_CSV = ROOT / "data" / "app" / "bookmaker_2025-26.csv"
+REAL_RESULTS_CSV = ROOT / "data" / "app" / "real_results_2025-26.csv"
 ELO2 = ["elo_diff", "abs_elo_diff"]
 STATE_COLUMNS = ["team", "elo", "gf_10_rel", "ga_10_rel", "home_venue_gf_rel", "home_venue_ga_rel",
                  "away_venue_gf_rel", "away_venue_ga_rel", "league_goals_per_match", "season_no_fans"]
@@ -51,7 +53,7 @@ def poisson_inputs(home, away):
 
 class Predictor:
     def __init__(self):
-        for path in [TEAM_STATE_CSV, BOOKMAKER_CSV, MODELS_DIR / "poisson_config.json"] + [MODELS_DIR / f"{m}.joblib" for m in CLASSIFIERS]:
+        for path in [TEAM_STATE_CSV, BOOKMAKER_CSV, REAL_RESULTS_CSV, MODELS_DIR / "poisson_config.json"] + [MODELS_DIR / f"{m}.joblib" for m in CLASSIFIERS]:
             if not path.exists():
                 raise AppDataError(f"app data is out of date: {path.name} is missing")
         state = pd.read_csv(TEAM_STATE_CSV)
@@ -60,6 +62,7 @@ class Predictor:
         self.state = state.set_index("team")
         self.teams = sorted(self.state.index)
         self.bookmaker = pd.read_csv(BOOKMAKER_CSV).set_index(["HomeTeam", "AwayTeam"])
+        self.real_results = pd.read_csv(REAL_RESULTS_CSV).set_index(["HomeTeam", "AwayTeam"])     # shown for comparison; never a model input
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")                    # sklearn version notes when unpickling; versions are pinned in app/requirements.txt
             self.classifiers = {m: joblib.load(MODELS_DIR / f"{m}.joblib") for m in CLASSIFIERS}
@@ -86,3 +89,11 @@ class Predictor:
                 "elo_diff": elo_diff, "probabilities": probabilities, "bookmaker": bookmaker,
                 "lambda_home": lam_home, "lambda_away": lam_away, "grid": grid[0],
                 "top_scorelines": top_scorelines(grid[0], k=10)}
+
+    def real_result(self, home_team, away_team):
+        """The real 2025-26 fixture of this pairing (date, score, outcome), or None. Display only: no model reads it."""
+        if (home_team, away_team) not in self.real_results.index:
+            return None
+        row = self.real_results.loc[(home_team, away_team)]
+        home, away = int(row["home_score"]), int(row["away_score"])
+        return {"date": row["Date"], "home_score": home, "away_score": away, "outcome": 0 if home > away else 1 if home == away else 2}

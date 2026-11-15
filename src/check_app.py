@@ -32,7 +32,7 @@ def passed(message):
 
 
 # ------------------------------------------------ 1. every file the app needs exists and loads
-needed = [P.TEAM_STATE_CSV, P.BOOKMAKER_CSV, APP / ".." / "data" / "app" / "sim_position_probs.csv", APP / ".." / "data" / "app" / "hero_ball.svg",
+needed = [P.TEAM_STATE_CSV, P.BOOKMAKER_CSV, P.REAL_RESULTS_CSV, APP / ".." / "data" / "app" / "sim_position_probs.csv", APP / ".." / "data" / "app" / "hero_ball.svg",
           ROOT / "reports" / "sim_vs_real_table.csv", ROOT / "reports" / "sim_points_by_game.csv", ROOT / "reports" / "sim_headline_metrics.json",
           ROOT / ".streamlit" / "config.toml", APP / "requirements.txt"] + [P.MODELS_DIR / f"{m}.joblib" for m in P.CLASSIFIERS] + [P.MODELS_DIR / "poisson_config.json"]
 missing = [str(p) for p in needed if not Path(p).exists()]
@@ -89,6 +89,21 @@ assert worst < 1e-9, f"app inputs differ from the feature pipeline by {worst}"
 assert min(totals) > 1.0 and max(totals) < 6.0, (min(totals), max(totals))
 assert all(abs(final_elo[t] - state.loc[t, "elo"]) < 1e-9 for t in state.index)
 passed(f"all 380 pairs: app inputs equal the training-time feature code (max difference {worst:.1e}); total-goals rate {min(totals):.2f} to {max(totals):.2f}")
+
+# ------------------------------------------------ 5b. the "What really happened" data (display only)
+real = pd.read_csv(P.REAL_RESULTS_CSV)
+assert len(real) == 380 and not real.duplicated(["HomeTeam", "AwayTeam"]).any() and set(real["HomeTeam"]) == set(state.index)
+assert list(real.columns) == ["Date", "HomeTeam", "AwayTeam", "home_score", "away_score"]
+worked = json.loads((ROOT / "reports" / "stage6_worked_example.json").read_text())
+found = predictor.real_result("Liverpool", "Bournemouth")
+assert f"{found['home_score']}-{found['away_score']}" == worked["real_score"] == "4-2" and found["outcome"] == 0
+assert predictor.real_result("Liverpool", "Liverpool") is None
+# the real score is display-only: predictions must not change with it (the Predictor's models never see the results table)
+saved = predictor.real_results
+predictor.real_results = saved.assign(home_score=0, away_score=0)
+assert all(np.allclose(predictor.predict("Liverpool", "Bournemouth")["probabilities"][m], result["probabilities"][m], rtol=0, atol=1e-12) for m in result["probabilities"])   # tolerance: the forest sums trees in parallel (1e-16 noise)
+predictor.real_results = saved
+passed(f"real results: 380 fixtures, one per team pair; Liverpool 4-2 Bournemouth equals the Stage 6 worked example; predictions do not depend on them")
 
 # ------------------------------------------------ 6. the app cannot read raw scores or train anything
 runtime_files = [p for p in list(APP.glob("*.py")) + list(APP.glob("views/*.py")) if p.name not in ("team_state_builder.py", "fetch_crests.py")]

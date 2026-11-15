@@ -6,6 +6,7 @@ It writes
   data/processed/team_state_end_of_2025-26.csv   one row per team: Elo and last-10 goal form AFTER its last 2025-26 match
   data/app/bookmaker_2025-26.csv                 the bookmaker's (margin-removed) probabilities for the 380 team pairs
   data/app/sim_position_probs.csv                P(team finishes in position 1..20) over the 1,000 simulated seasons
+  data/app/real_results_2025-26.csv              the real score of each 2025-26 fixture (shown on Page 1 for comparison only)
 
 HOW THE TEAM STATE IS BUILT (the "end of 2025-26" trick). The models were trained on features that describe each team
 BEFORE a match. To ask "what would the models say about Liverpool v Bournemouth right now?" we need those same features
@@ -37,6 +38,7 @@ ODDS_CSV = ROOT / "data" / "processed" / "odds.csv"
 TEAM_STATE_CSV = ROOT / "data" / "processed" / "team_state_end_of_2025-26.csv"
 BOOKMAKER_CSV = ROOT / "data" / "app" / "bookmaker_2025-26.csv"
 POSITION_PROBS_CSV = ROOT / "data" / "app" / "sim_position_probs.csv"
+REAL_RESULTS_CSV = ROOT / "data" / "app" / "real_results_2025-26.csv"
 SIM_TABLES_CSV = ROOT / "reports" / "sim_tables.csv"
 SEASON = "2025-26"
 
@@ -109,6 +111,15 @@ def build_bookmaker_table():
     return table
 
 
+def build_real_results(matches):
+    """The real 2025-26 score of every fixture. Columns are renamed home_score / away_score on purpose: the app then never
+    reads a raw score column (src/check_app.py enforces that), only this small, labelled, display-only table."""
+    played = matches[matches["season"] == SEASON]
+    table = played[["Date", "HomeTeam", "AwayTeam", "home_goals", "away_goals"]].rename(columns={"home_goals": "home_score", "away_goals": "away_score"})
+    assert len(table) == 380 and not table.duplicated(["HomeTeam", "AwayTeam"]).any()
+    return table.reset_index(drop=True)
+
+
 def build_position_probs():
     """P(team finishes in each position 1..20) from the 1,000 simulated final tables."""
     tables = pd.read_csv(SIM_TABLES_CSV, usecols=["sim_id", "team", "final_position"])
@@ -130,6 +141,10 @@ def main():
     bookmaker = build_bookmaker_table()
     bookmaker.to_csv(BOOKMAKER_CSV, index=False)
     print(f"\nSaved {BOOKMAKER_CSV.relative_to(ROOT)}: {len(bookmaker)} fixtures")
+
+    results = build_real_results(matches)
+    results.to_csv(REAL_RESULTS_CSV, index=False)
+    print(f"Saved {REAL_RESULTS_CSV.relative_to(ROOT)}: {len(results)} fixtures")
 
     positions = build_position_probs()
     positions.to_csv(POSITION_PROBS_CSV)

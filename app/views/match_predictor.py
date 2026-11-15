@@ -59,6 +59,35 @@ def comparison_table(r):
                    "(margin removed). The models use each team's form at the END of the season, so the two are not like-for-like.")
 
 
+def real_result_section(predictor, r):
+    """What really happened in this fixture in 2025-26, next to what each model gave to that outcome."""
+    real = predictor.real_result(r["home"], r["away"])
+    st.markdown("### What really happened")
+    if real is None:
+        st.caption("This pairing was not played in 2025-26.")
+        return
+    names = ["Home win", "Draw", "Away win"]
+    colors = [GREEN, GREY, CYAN]
+    date = pd.to_datetime(real["date"]).strftime("%d %B %Y")
+    html(f'<div class="score" style="font-size:40px">{CODES[r["home"]]} {real["home_score"]} : {real["away_score"]} {CODES[r["away"]]}'
+         f'<small>Real full-time result, {date}: <b style="color:{colors[real["outcome"]]}">{names[real["outcome"]]}</b></small></div>')
+    given = {"Logistic Regression (primary)": r["probabilities"]["logreg"], "Random Forest": r["probabilities"]["random_forest"],
+             "XGBoost": r["probabilities"]["xgboost"], "Poisson": r["probabilities"]["poisson"]}
+    if r["bookmaker"] is not None:
+        given["Bookmaker"] = r["bookmaker"]
+    st.caption("Chance each model gave to the outcome that really happened:")
+    columns = st.columns(len(given))
+    for column, (name, p) in zip(columns, given.items()):
+        picked = names[int(p.argmax())]
+        column.markdown(tile(pct(p[real["outcome"]]), f"{name}<br>top pick: {picked}",
+                             colors[real["outcome"]], small=True), unsafe_allow_html=True)
+    exact = r["grid"][real["home_score"], real["away_score"]] if max(real["home_score"], real["away_score"]) <= 10 else 0.0
+    st.caption(f"The Poisson model gave the exact score {real['home_score']}-{real['away_score']} a {exact * 100:.1f}% chance. "
+               "Read this as a sanity check, not a test: the models here use each team's form at the END of 2025-26, which already includes "
+               "this very match, and the real score is never an input to any model. The fair test of the models on 2025-26 is Stage 6, "
+               "which predicted each match using only earlier ones.")
+
+
 def scoreline_chart(r):
     rows = [{"score": f"{h}-{a}", "prob": p * 100, "outcome": "Home win" if h > a else "Draw" if h == a else "Away win"}
             for h, a, p in r["top_scorelines"]]
@@ -99,6 +128,8 @@ st.markdown("### All models side by side")
 comparison_table(result)
 st.markdown("### Most likely scorelines (Poisson)")
 scoreline_chart(result)
+
+real_result_section(predictor, result)
 
 with st.expander("Match context"):
     favourite = home_team if result["elo_diff"] > 0 else away_team

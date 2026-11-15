@@ -549,3 +549,10 @@ Checks: `src/check_app.py`. Screenshots: figures 46 and 47.
 | 8 | Page 1 uses the end-of-2025-26 state: Elo after the last match and last-10 form after the last match, with the league level = the last 380 matches (2.75) | Built by running the project's own feature code over 380 hypothetical fixtures on one day after the season (`app/team_state_builder.py`), so the features match the training code exactly (check_app compares all 380 pairs: max difference 0). The Poisson inputs keep the documented `_rel` label swap, as the saved model expects |
 | 9 | The fan-chart median line uses the team colour, blended toward white when it is too dark for the purple page (Fulham black, Newcastle, Tottenham, Chelsea) | Black on dark purple is invisible |
 | 10 | The team state and the Season Table are built from 2025-26 results; the app itself reads no score column | `check_app.py` scans the runtime files for raw-data names and score columns |
+
+**Addition (requested after review): "What really happened" on Page 1.** Every ordered team pair was played once in 2025-26, so Page 1 now shows the real
+score and date of the chosen fixture, and the chance each model gave to the real outcome. Decisions: (a) this deliberately relaxes the Stage 9 rule "the app reads
+no 2025-26 score": the scores come from one small precomputed display file, `data/app/real_results_2025-26.csv` (columns renamed home_score / away_score;
+written by `app/team_state_builder.py`), never from raw data, and `src/check_app.py` still forbids raw files and raw score column names, and proves
+predictions are identical when the scores are zeroed; (b) the page says it is a sanity check, not a test, because the end-of-2025-26 state already includes that
+very match (the fair test is Stage 6); (c) Liverpool 4-2 Bournemouth equals the Stage 6 worked example (checked).

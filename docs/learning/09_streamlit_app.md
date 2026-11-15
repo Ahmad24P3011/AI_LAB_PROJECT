@@ -14,7 +14,8 @@
 - `app/requirements.txt`: the minimal, pinned package list for deployment
 - `.streamlit/config.toml`: the dark purple theme
 - `data/processed/team_state_end_of_2025-26.csv`: one row per team (Elo and last-10 form after its last match)
-- `data/app/bookmaker_2025-26.csv`, `data/app/sim_position_probs.csv`, `data/app/hero_ball.svg`: small files the app reads
+- `data/app/bookmaker_2025-26.csv`, `data/app/real_results_2025-26.csv`, `data/app/sim_position_probs.csv`, `data/app/hero_ball.svg`: small files the app reads
+- `app/make_hero_ball.py`: draws the banner football
 - `src/check_app.py`: the checks; `src/screenshot_app.py`: takes the two screenshots
 - `reports/figures/46_app_screenshot_match.png`, `47_app_screenshot_season.png`
 - `README.md` ("How to run the app"), `docs/decisions.md` (Stage 9 section), `requirements.txt` (added `pillow`), `.gitignore` (crest PNGs)
@@ -28,7 +29,8 @@ Until now everything lived in code files and CSV tables that only we can run. A 
 1. **The team state** (`team_state_builder.py`). A model needs numbers describing the two teams "before the match". For a match that has not happened we need those numbers as they stand today. We took each team's Elo and last-10 goal form as of its last 2025-26 match (24 May 2026). Example: Arsenal Elo 1728, Man City 1697, Burnley 1339.
 2. **Page 1, Match Predictor.** You pick a home and an away team. The app shows the three probabilities from the primary model (ELO2 Logistic Regression), a football-style scoreboard with the Poisson expected goals, a table comparing all four model families and the bookmaker, and a bar chart of the ten likeliest exact scores. Example (Liverpool v Bournemouth): Logistic Regression 40% / 28% / 32%, expected goals 1.4 : 1.3, most likely exact score 1-1 (12%).
 3. **Page 2, Season Table.** The Stage 7 results: simulated and real table side by side, a chart of how a chosen team's points could have gone over 1,000 simulated seasons, and a heatmap of where every team finished.
-4. **Honest framing.** A sidebar says what the project is and lists three limitations; every page ends with "For educational purposes only."
+4. **"What really happened" (Page 1).** Below the scoreline chart the app shows the real 2025-26 result of the chosen fixture (for example Liverpool 4-2 Bournemouth, 15 August 2025) and the chance each model gave to the outcome that really happened (40%, 47%, 44%, 41% and the bookmaker 73% for a home win). **Important:** this is a sanity check, not a test. The app describes teams as of the END of the season, which already includes this very match, so it is not a fair out-of-sample prediction; the fair test is Stage 6. The scores come from one small precomputed file (`data/app/real_results_2025-26.csv`) and are never a model input (the check proves that predictions do not change if the scores are zeroed).
+5. **Honest framing.** A sidebar says what the project is and lists three limitations; every page ends with "For educational purposes only."
 
 ## 3. New concepts (explained simply)
 - **Web app:** a program that runs on a server and shows its results in your browser. *Analogy:* a vending machine; you press a button, the machine (server) does the work, you only see the result.
