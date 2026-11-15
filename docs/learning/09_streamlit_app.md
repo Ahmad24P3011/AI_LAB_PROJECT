@@ -79,7 +79,7 @@ How to read Page 2: green shading is the chance of the title, magenta the chance
 - **Inventing a team state.** We built it with the project's feature code, not by hand, and tested all 380 pairs.
 - **Comparing things from different dates.** The bookmaker row is labelled, not hidden.
 - **Dark colours on a dark page.** Fulham's black disappeared; we blend dark team colours toward white.
-- **Copyright.** Club crests are trademarked, non-free logos. The PNGs are not committed; the app shows coloured badges without them. No player photos are used.
+- **Copyright.** Club crests are trademarked, non-free logos. They are included here for this non-commercial university project only (sources in `data/app/team_crests/SOURCES.md`); if the files are missing, the app shows coloured 3-letter badges instead. No player photos are used.
 
 ## 7. Check yourself
 1. What is the difference between training a model and serving it? Which one does the app do?

@@ -556,3 +556,7 @@ no 2025-26 score": the scores come from one small precomputed display file, `dat
 written by `app/team_state_builder.py`), never from raw data, and `src/check_app.py` still forbids raw files and raw score column names, and proves
 predictions are identical when the scores are zeroed; (b) the page says it is a sanity check, not a test, because the end-of-2025-26 state already includes that
 very match (the fair test is Stage 6); (c) Liverpool 4-2 Bournemouth equals the Stage 6 worked example (checked).
+
+**Update (requested after deployment): crests are now committed.** The deployed app showed only initials because the crest PNGs were git-ignored. The project owner
+chose to publish them, so `.gitignore` no longer excludes `data/app/team_crests/*.png` (20 files, 432 KB). They remain trademarked, non-free club logos used for
+this non-commercial university project only; sources are listed in `data/app/team_crests/SOURCES.md`. The badge fallback stays in place and is still tested.

@@ -67,8 +67,7 @@ streamlit run app/streamlit_app.py
    xgboost 3.4, which have no Python 3.11 builds). The dependencies are read from `app/requirements.txt`.
 5. Click Deploy. The first start takes a few minutes while the packages install.
 
-Check the app's data and predictions with `python src/check_app.py`. Club crests (`data/app/team_crests/*.png`) are git-ignored non-free logos;
-without them the app shows coloured 3-letter badges. `python app/fetch_crests.py` downloads them again.
+Check the app's data and predictions with `python src/check_app.py`. Club crests (`data/app/team_crests/*.png`) are trademarked club logos, included for this non-commercial university project only (sources: `data/app/team_crests/SOURCES.md`); without them the app shows coloured 3-letter badges. `python app/fetch_crests.py` downloads them again.
 
 ## Poisson goal model: how Stage 7 (season simulation) should call it
 
