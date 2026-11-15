@@ -127,6 +127,15 @@ for page, target in (("match_predictor", "season_table"), ("season_table", "matc
 assert 'page_link("views/season_table.py"' in (APP / "styles.py").read_text(encoding="utf-8") and 'page_link("views/match_predictor.py"' in (APP / "styles.py").read_text(encoding="utf-8")
 passed("each page shows in-page links to both pages (navigation does not depend on the sidebar)")
 
+# ------------------------------------------------ 6c. phone layout: tables scroll instead of being cut off, tiles do not stack, phone CSS exists
+styles_text = (APP / "styles.py").read_text(encoding="utf-8")
+for needle in ("@media (max-width: 700px)", ".table-wrap", ".tile-row", ".hide-m"):
+    assert needle in styles_text, needle
+for page in ("match_predictor", "season_table"):
+    text = (APP / "views" / f"{page}.py").read_text(encoding="utf-8")
+    assert 'class="table-wrap"' in text and "tile_row(" in text and "st.columns(3)" not in text and "st.columns(4)" not in text, page
+passed("phone layout: media query, scrollable table wrappers and tile rows are in place on both pages")
+
 # ------------------------------------------------ 7. app/requirements.txt is the minimal list
 requirements = (APP / "requirements.txt").read_text().lower()
 for package in ("streamlit", "pandas", "numpy", "scikit-learn", "xgboost", "joblib", "statsmodels", "scipy"):

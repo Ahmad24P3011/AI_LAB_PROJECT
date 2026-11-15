@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 import styles
-from styles import CYAN, GREEN, GREY, MAGENTA, PURPLE, crest, html, tile, visible_color
+from styles import CYAN, GREEN, GREY, MAGENTA, PURPLE, crest, html, tile, tile_row, visible_color
 from team_colors import COLORS
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -37,13 +37,13 @@ def standings_table(table, column, ascending):
     body = ""
     for _, r in shown.iterrows():
         body += (f'<tr><td>{crest(r["team"], 24)} &nbsp;{r["team"]}</td><td>{r["real_pos"]}</td><td>{r["real_pts"]}</td>'
-                 f'<td>{r["sim_mean_pos"]:.1f}</td><td>{r["sim_mean_pts"]:.1f}</td>'
+                 f'<td class="hide-m">{r["sim_mean_pos"]:.1f}</td><td class="hide-m">{r["sim_mean_pts"]:.1f}</td>'
                  f'<td style="{shade(r["sim_P_title"], top_title, GREEN)}">{r["sim_P_title"] * 100:.1f}%</td>'
                  f'<td>{r["sim_P_top4"] * 100:.1f}%</td>'
                  f'<td style="{shade(r["sim_P_relegation"], top_rel, MAGENTA)}">{r["sim_P_relegation"] * 100:.1f}%</td>'
-                 f'<td>{r["position_error"]:+.1f}</td></tr>')
-    html('<table class="pl-table"><tr><th>Team</th><th>Real pos</th><th>Real pts</th><th>Sim mean pos</th><th>Sim mean pts</th>'
-         '<th>P(title)</th><th>P(top 4)</th><th>P(relegation)</th><th>Position error (sim - real)</th></tr>' + body + '</table>')
+                 f'<td class="hide-m">{r["position_error"]:+.1f}</td></tr>')
+    html('<div class="table-wrap"><table class="pl-table standings"><tr><th>Team</th><th>Real pos</th><th>Real pts</th><th class="hide-m">Sim mean pos</th><th class="hide-m">Sim mean pts</th>'
+         '<th>P(title)</th><th>P(top 4)</th><th>P(relegation)</th><th class="hide-m">Position error (sim - real)</th></tr>' + body + '</table></div>')
 
 
 def fan_chart(by_game, table, team):
@@ -82,21 +82,18 @@ styles.hero("Season Table", "Simulated 2025-26, 1,000 Monte Carlo runs")
 styles.nav_links()
 table, by_game, metrics, positions = load_data()
 
-c1, c2, c3, c4 = st.columns(4)
-champion = metrics["real_champion"]
-c1.markdown(tile(f'{crest(champion, 44)}<br><span style="font-size:26px">{champion}</span>', f'Real champion ({metrics["real_champion_pts"]} pts)', "#FFFFFF", small=True),
-            unsafe_allow_html=True)
-favourite = metrics["sim_favourite"]
-c2.markdown(tile(f'{crest(favourite, 44)}<br><span style="font-size:26px">{favourite}</span>',
-                 f'Simulated favourite: P(title) {metrics["sim_P_title_of_favourite"] * 100:.1f}%', GREEN, small=True), unsafe_allow_html=True)
-c3.markdown(tile(f'{metrics["mean_abs_position_error"]:.2f}', "Mean absolute position error", CYAN), unsafe_allow_html=True)
-c4.markdown(tile(f'{metrics["spearman_rank_correlation"]:.2f}', "Spearman correlation (1 = same order)", CYAN), unsafe_allow_html=True)
+champion, favourite = metrics["real_champion"], metrics["sim_favourite"]
+html(tile_row([
+    tile(f'{crest(champion, 44)}<br><span style="font-size:22px">{champion}</span>', f'Real champion ({metrics["real_champion_pts"]} pts)', "#FFFFFF", small=True),
+    tile(f'{crest(favourite, 44)}<br><span style="font-size:22px">{favourite}</span>', f'Simulated favourite: P(title) {metrics["sim_P_title_of_favourite"] * 100:.1f}%', GREEN, small=True),
+    tile(f'{metrics["mean_abs_position_error"]:.2f}', "Mean absolute position error", CYAN),
+    tile(f'{metrics["spearman_rank_correlation"]:.2f}', "Spearman correlation (1 = same order)", CYAN)], wrap=True))
 
 st.markdown("### Simulated table next to the real one")
 SORTS = {"Real position": ("real_pos", True), "Simulated mean position": ("sim_mean_pos", True), "P(title)": ("sim_P_title", False)}
 sort_choice = st.radio("Sort by", list(SORTS), horizontal=True, label_visibility="collapsed")
 standings_table(table, *SORTS[sort_choice])
-st.caption("Green shading: chance of winning the title. Magenta shading: chance of relegation. Position error = simulated mean position minus real position.")
+st.caption("Green shading: chance of winning the title. Magenta shading: chance of relegation. Position error = simulated mean position minus real position. (On a phone, the simulated-position and error columns are hidden; use a wider screen to see them.)")
 
 st.markdown("### How a team's points could have gone")
 team = st.selectbox("Team", sorted(table["team"]), index=sorted(table["team"]).index("Arsenal"))

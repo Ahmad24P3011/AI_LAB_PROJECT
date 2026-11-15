@@ -59,13 +59,24 @@ p, li, label {{ font-size: 16px; }}
 .pl-table td:first-child {{ font-weight: 700; }}
 .pl-table tr:hover td {{ background: #3a0a42; }}
 .pl-table .primary td:first-child {{ border-left: 4px solid {GREEN}; }}
+.table-wrap {{ overflow-x: auto; -webkit-overflow-scrolling: touch; }}
+.tile-row {{ display: flex; gap: 12px; flex-wrap: nowrap; margin-bottom: 4px; }}
+.tile-row .tile {{ flex: 1 1 0; min-width: 0; }}
+.score.sm {{ font-size: 40px; }}
 .note {{ color: {GREY}; font-size: 13px; }}
 .disclaimer {{ text-align: center; color: {GREY}; font-size: 13px; margin-top: 36px; }}
 [data-testid="stSidebar"] {{ background: {CARD}; }}
 @media (max-width: 700px) {{
-  .hero {{ height: auto; padding: 18px 20px; }} .hero h1 {{ font-size: 32px; }} .hero img {{ height: 56px; }}
-  .tile .big {{ font-size: 40px; }} .score {{ font-size: 28px; }} .vs {{ width: 52px; height: 52px; font-size: 16px; margin: 0 8px; }}
-  .side .name {{ font-size: 18px; }}
+  .block-container {{ padding: 0 1rem 2rem 1rem; }}
+  .hero {{ height: auto; padding: 18px 20px; }} .hero h1 {{ font-size: 32px; }} .hero p {{ font-size: 15px; }} .hero img {{ height: 56px; }}
+  .tile {{ padding: 14px 6px; min-height: 100px; }} .tile .big {{ font-size: 36px; }} .tile .big.sm {{ font-size: 22px; }} .tile .label {{ font-size: 12px; }}
+  .tile-row.wrap {{ flex-wrap: wrap; }} .tile-row.wrap .tile {{ flex: 1 1 calc(50% - 6px); }}
+  .score {{ font-size: 22px; letter-spacing: 0; padding: 12px 6px; }} .score.sm {{ font-size: 22px; }}
+  .vs {{ width: 52px; height: 52px; font-size: 16px; margin: 0 8px; }}
+  .matchup {{ padding: 14px 8px; }} .side .name {{ font-size: 16px; }}
+  .pl-table {{ font-size: 13px; }} .pl-table th, .pl-table td {{ padding: 6px 6px; }} .standings td:first-child {{ white-space: nowrap; }}
+  .hide-m {{ display: none; }}
+  h2, h3 {{ font-size: 22px; }}
 }}
 </style>
 """
@@ -117,6 +128,11 @@ def nav_links():
     left, right = st.columns(2)
     left.page_link("views/match_predictor.py", label="Match Predictor", icon="⚽")
     right.page_link("views/season_table.py", label="Season Table", icon="🏆")
+
+
+def tile_row(tiles, wrap=False):
+    """Tiles side by side in one flex row (st.columns would stack them one under another on a phone). wrap=True gives 2 per row on a phone."""
+    return f'<div class="tile-row{" wrap" if wrap else ""}">{"".join(tiles)}</div>'
 
 
 def disclaimer():

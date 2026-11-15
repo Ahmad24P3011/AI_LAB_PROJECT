@@ -5,7 +5,7 @@ import streamlit as st
 
 import styles
 from predictor import CLASSIFIERS, AppDataError, Predictor
-from styles import CYAN, GREEN, GREY, crest, html, tile
+from styles import CYAN, GREEN, GREY, crest, html, tile, tile_row
 from team_colors import CODES, COLORS
 
 
@@ -26,9 +26,7 @@ def matchup_card(home, away):
 
 
 def probability_tiles(p):
-    columns = st.columns(3)
-    for column, (value, label, color) in zip(columns, [(p[0], "Home win", GREEN), (p[1], "Draw", GREY), (p[2], "Away win", CYAN)]):
-        column.markdown(tile(pct(value), label, color), unsafe_allow_html=True)
+    html(tile_row([tile(pct(value), label, color) for value, label, color in [(p[0], "Home win", GREEN), (p[1], "Draw", GREY), (p[2], "Away win", CYAN)]]))
 
 
 def scoreboard(r):
@@ -50,8 +48,8 @@ def comparison_table(r):
     for name, p, score, primary in rows:
         cells = ["-", "-", "-"] if p is None else [pct(v) for v in p]
         body += (f'<tr class="{"primary" if primary else ""}"><td>{name}</td><td style="color:{GREEN}">{cells[0]}</td>'
-                 f'<td style="color:{GREY}">{cells[1]}</td><td style="color:{CYAN}">{cells[2]}</td><td>{score}</td></tr>')
-    html('<table class="pl-table"><tr><th>Model</th><th>P(Home)</th><th>P(Draw)</th><th>P(Away)</th><th>Expected score</th></tr>' + body + '</table>')
+                 f'<td style="color:{GREY}">{cells[1]}</td><td style="color:{CYAN}">{cells[2]}</td><td class="hide-m">{score}</td></tr>')
+    html('<div class="table-wrap"><table class="pl-table"><tr><th>Model</th><th>P(Home)</th><th>P(Draw)</th><th>P(Away)</th><th class="hide-m">Expected score</th></tr>' + body + '</table></div>')
     if r["bookmaker"] is None:
         st.caption("No bookmaker odds exist for this pairing.")
     else:
@@ -69,18 +67,15 @@ def real_result_section(predictor, r):
     names = ["Home win", "Draw", "Away win"]
     colors = [GREEN, GREY, CYAN]
     date = pd.to_datetime(real["date"]).strftime("%d %B %Y")
-    html(f'<div class="score" style="font-size:40px">{CODES[r["home"]]} {real["home_score"]} : {real["away_score"]} {CODES[r["away"]]}'
+    html(f'<div class="score sm">{CODES[r["home"]]} {real["home_score"]} : {real["away_score"]} {CODES[r["away"]]}'
          f'<small>Real full-time result, {date}: <b style="color:{colors[real["outcome"]]}">{names[real["outcome"]]}</b></small></div>')
     given = {"Logistic Regression (primary)": r["probabilities"]["logreg"], "Random Forest": r["probabilities"]["random_forest"],
              "XGBoost": r["probabilities"]["xgboost"], "Poisson": r["probabilities"]["poisson"]}
     if r["bookmaker"] is not None:
         given["Bookmaker"] = r["bookmaker"]
     st.caption("Chance each model gave to the outcome that really happened:")
-    columns = st.columns(len(given))
-    for column, (name, p) in zip(columns, given.items()):
-        picked = names[int(p.argmax())]
-        column.markdown(tile(pct(p[real["outcome"]]), f"{name}<br>top pick: {picked}",
-                             colors[real["outcome"]], small=True), unsafe_allow_html=True)
+    tiles = [tile(pct(p[real["outcome"]]), f"{name}<br>top pick: {names[int(p.argmax())]}", colors[real["outcome"]], small=True) for name, p in given.items()]
+    html(tile_row(tiles, wrap=True))
     exact = r["grid"][real["home_score"], real["away_score"]] if max(real["home_score"], real["away_score"]) <= 10 else 0.0
     st.caption(f"The Poisson model gave the exact score {real['home_score']}-{real['away_score']} a {exact * 100:.1f}% chance. "
                "Read this as a sanity check, not a test: the models here use each team's form at the END of 2025-26, which already includes "
