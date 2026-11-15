@@ -25,7 +25,10 @@ CSS = f"""
 html, body, [class*="css"], .stMarkdown, .stSelectbox, .stRadio {{ font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; }}
 #MainMenu, footer {{ visibility: hidden; }}
 [data-testid="stToolbar"], [data-testid="stDecoration"] {{ display: none; }}
-header[data-testid="stHeader"] {{ background: transparent; }}   /* keeps the small sidebar toggle usable on phones */
+header[data-testid="stHeader"] {{ background: transparent; }}
+[data-testid="stExpandSidebarButton"], [data-testid="stSidebarCollapsedControl"], [data-testid="stSidebarCollapseButton"] {{ color: #FFFFFF; }}
+[data-testid="stPageLink"] a {{ background: {CARD}; border-radius: 999px; padding: 6px 16px; }}
+[data-testid="stPageLink"] a:hover {{ background: #3a0a42; }}   /* keeps the small sidebar toggle usable on phones */
 .block-container {{ padding: 0 2rem 2rem 2rem; max-width: 1180px; }}
 h1 {{ font-size: 48px; font-weight: 800; }} h2 {{ font-size: 32px; font-weight: 800; }} h3 {{ font-size: 20px; font-weight: 600; }}
 p, li, label {{ font-size: 16px; }}
@@ -39,9 +42,9 @@ p, li, label {{ font-size: 16px; }}
 .tile .big {{ font-size: 56px; font-weight: 800; line-height: 1.05; }}
 .tile .label {{ font-size: 14px; color: {GREY}; margin-top: 4px; }}
 .tile .big.sm {{ font-size: 34px; }}
-.matchup {{ display: flex; align-items: center; justify-content: space-between; border-radius: 16px; padding: 22px 30px; background: {CARD}; }}
-.side {{ flex: 1; text-align: center; padding: 18px 8px; border-radius: 14px; }}
-.side .name {{ font-size: 28px; font-weight: 800; margin-top: 8px; }}
+.matchup {{ display: flex; align-items: center; justify-content: space-between; border-radius: 16px; padding: 22px 16px; background: {CARD}; overflow: hidden; }}
+.side {{ flex: 1 1 0; min-width: 0; text-align: center; padding: 18px 8px; border-radius: 14px; }}
+.side .name {{ font-size: clamp(16px, 2.2vw, 28px); font-weight: 800; margin-top: 8px; overflow-wrap: anywhere; }}
 .vs {{ width: 80px; height: 80px; border-radius: 50%; background: {GRADIENT}; display: flex; align-items: center; justify-content: center;
        font-weight: 800; font-size: 24px; margin: 0 18px; flex: none; }}
 .score {{ background: #000; border-radius: 14px; padding: 14px 10px; text-align: center; font-family: 'Courier New', ui-monospace, monospace;
@@ -107,6 +110,13 @@ def crest(team, size=28):
 
 def tile(value, label, color="#FFFFFF", small=False):
     return f'<div class="tile"><div class="big{" sm" if small else ""}" style="color:{color}">{value}</div><div class="label">{label}</div></div>'
+
+
+def nav_links():
+    """Links to both pages, right under the banner, so the user never depends on the sidebar (it starts collapsed on narrow screens)."""
+    left, right = st.columns(2)
+    left.page_link("views/match_predictor.py", label="Match Predictor", icon="⚽")
+    right.page_link("views/season_table.py", label="Season Table", icon="🏆")
 
 
 def disclaimer():

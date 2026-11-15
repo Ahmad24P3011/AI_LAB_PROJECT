@@ -103,6 +103,7 @@ def scoreline_chart(r):
 
 
 styles.hero("Match Predictor", "Premier League 2025-26 - end-of-season form")
+styles.nav_links()
 try:
     predictor = load_predictor()
 except AppDataError as error:

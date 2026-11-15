@@ -121,6 +121,12 @@ assert not heavy, heavy
 assert not list(APP.rglob("*.csv")) and not list(APP.rglob("*.joblib")) and not list(APP.rglob("*.ipynb"))
 passed("app/ holds only small code files (no data, models or notebooks)")
 
+# ------------------------------------------------ 6b. both pages link to each other (the sidebar starts collapsed on narrow screens)
+for page, target in (("match_predictor", "season_table"), ("season_table", "match_predictor")):
+    assert "styles.nav_links()" in (APP / "views" / f"{page}.py").read_text(encoding="utf-8"), page
+assert 'page_link("views/season_table.py"' in (APP / "styles.py").read_text(encoding="utf-8") and 'page_link("views/match_predictor.py"' in (APP / "styles.py").read_text(encoding="utf-8")
+passed("each page shows in-page links to both pages (navigation does not depend on the sidebar)")
+
 # ------------------------------------------------ 7. app/requirements.txt is the minimal list
 requirements = (APP / "requirements.txt").read_text().lower()
 for package in ("streamlit", "pandas", "numpy", "scikit-learn", "xgboost", "joblib", "statsmodels", "scipy"):

@@ -79,6 +79,7 @@ def heatmap(table, positions):
 
 
 styles.hero("Season Table", "Simulated 2025-26, 1,000 Monte Carlo runs")
+styles.nav_links()
 table, by_game, metrics, positions = load_data()
 
 c1, c2, c3, c4 = st.columns(4)
