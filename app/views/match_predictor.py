@@ -70,7 +70,7 @@ def scoreline_chart(r):
                                      scale=alt.Scale(domain=["Home win", "Draw", "Away win"], range=[GREEN, GREY, CYAN])),
                      tooltip=["score", alt.Tooltip("prob:Q", format=".1f")])
              .properties(height=400, background="transparent").configure_view(strokeWidth=0))
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(chart, width="stretch")
 
 
 styles.hero("Match Predictor", "Premier League 2025-26 - end-of-season form")

@@ -59,7 +59,7 @@ def fan_chart(by_game, table, team):
     dot = alt.Chart(real).mark_point(color=GREEN, size=140, filled=True, opacity=1).encode(x="game_no:Q", y="points:Q",
                                                                                         tooltip=[alt.Tooltip("points:Q", title="Real final points")])
     chart = (outer + inner + median + dot).properties(height=340, background="transparent").configure_view(strokeWidth=0)
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(chart, width="stretch")
 
 
 def heatmap(table, positions):
@@ -75,7 +75,7 @@ def heatmap(table, positions):
                      tooltip=["team", "position", alt.Tooltip("probability:Q", format=".1%")]))
     marks = (alt.Chart(real).mark_point(shape="circle", color=GREEN, filled=True, size=90, stroke="#000", strokeWidth=1)
              .encode(x="position:O", y=alt.Y("team:N", sort=order), tooltip=["team", alt.Tooltip("position:O", title="Real position")]))
-    st.altair_chart((cells + marks).properties(height=560, background="transparent").configure_view(strokeWidth=0), use_container_width=True)
+    st.altair_chart((cells + marks).properties(height=560, background="transparent").configure_view(strokeWidth=0), width="stretch")
 
 
 styles.hero("Season Table", "Simulated 2025-26, 1,000 Monte Carlo runs")
