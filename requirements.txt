@@ -9,3 +9,4 @@ statsmodels
 streamlit
 requests
 jupyter
+pillow

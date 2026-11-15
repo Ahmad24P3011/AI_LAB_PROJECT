@@ -44,11 +44,31 @@ python src/check_setup.py
 
 The last command should end with `Setup OK`.
 
-## Run the app (later, Stage 9)
+## How to run the app (Stage 9)
+
+The app (`app/streamlit_app.py`) only SERVES the saved models and saved simulation outputs; it trains and simulates nothing.
+Page 1 (Match Predictor): pick two teams, get Home/Draw/Away probabilities from four model families, the Poisson expected score and the bookmaker
+reference. Page 2 (Season Table): the simulated 2025-26 table beside the real one, with title / top-4 / relegation probabilities,
+a points-fan chart and a finishing-position heatmap.
+
+**Locally** (from the repo root, with the project environment active):
 
 ```
-streamlit run app/app.py
+pip install -r requirements.txt
+python app/team_state_builder.py        # only needed if data/processed/team_state_end_of_2025-26.csv is missing
+streamlit run app/streamlit_app.py
 ```
+
+**On Streamlit Community Cloud** (free):
+1. Push the repo to GitHub (done: this repository).
+2. Go to https://share.streamlit.io, sign in with GitHub and choose "Create app" / "New app".
+3. Pick this repository, branch `master`, main file path `app/streamlit_app.py`.
+4. Under "Advanced settings" choose **Python 3.12** (3.13 also works; 3.11 does NOT, because `app/requirements.txt` pins numpy 2.5, scipy 1.18 and
+   xgboost 3.4, which have no Python 3.11 builds). The dependencies are read from `app/requirements.txt`.
+5. Click Deploy. The first start takes a few minutes while the packages install.
+
+Check the app's data and predictions with `python src/check_app.py`. Club crests (`data/app/team_crests/*.png`) are git-ignored non-free logos;
+without them the app shows coloured 3-letter badges. `python app/fetch_crests.py` downloads them again.
 
 ## Poisson goal model: how Stage 7 (season simulation) should call it
 

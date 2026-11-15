@@ -1,0 +1,14 @@
+# Streamlit reads this file from the folder where `streamlit run` is started (the repo root, also on Streamlit Community Cloud).
+[theme]
+base = "dark"
+primaryColor = "#00FF87"
+backgroundColor = "#37003C"
+secondaryBackgroundColor = "#240029"
+textColor = "#FFFFFF"
+font = "sans serif"
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false

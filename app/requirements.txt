@@ -1,0 +1,12 @@
+# Minimal packages for the web app only (the root requirements.txt is the full project).
+# Versions are pinned to the ones the saved models were pickled with, so the files load identically on the server.
+# They need Python 3.12 or 3.13 (numpy 2.5 / scipy 1.18 / xgboost 3.4 have no Python 3.11 builds).
+# The charts use Altair, which Streamlit installs by itself.
+streamlit==1.67.0
+pandas==3.1.1
+numpy==2.5.4
+scikit-learn==1.9.1
+xgboost==3.4.1
+joblib==1.6.0
+statsmodels==0.15.0
+scipy==1.18.1

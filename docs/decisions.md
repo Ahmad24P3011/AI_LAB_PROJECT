@@ -528,3 +528,24 @@ gives Arsenal 70.0 because it averages over the seasons Arsenal did not win. Cei
 | 1 | **The `_rel` column swap in `src/features_goals.py` is documented, NOT fixed** (option A). Why: the bug was consistent across training, validation, Stage 6 and the simulation; fixing it would retroactively break the pre-registered Stage 6 result; its measured effect on the validation seasons is +0.0006 (deviance, [-0.0012, +0.0024]), immaterial. The simulator keeps `LEGACY_SWAPPED_LABELS = True`. Details: the Stage 7 section above and `reports/poisson_layout_diagnostic.csv` | settled |
 | 2 | **Future work** (not done in this project): (a) start the simulator from each team's real 2024-25 form (last-10 matches carried over) instead of neutral defaults: it is information available at the start of the season and might improve the forecasts; (b) model the correlated home/away goals (observed correlation -0.14 on the training seasons) with a bivariate copula or the Dixon-Coles approach; independence is kept for simplicity | recorded |
 | 3 | League level 2.83, Elo `keep` 0.9 and the other Stage 7 choices stay as run | settled |
+
+---
+
+## Stage 9: Streamlit app (2026-11-15)
+
+Stage 8 (player leaders) is dropped, so the app has two pages (Match Predictor, Season Table). The app only SERVES saved artifacts; nothing is retrained or re-simulated.
+Checks: `src/check_app.py`. Screenshots: figures 46 and 47.
+
+**Deviations from the prompt, and readings (for review).**
+| # | What | Why |
+|---|---|---|
+| 1 | Python **3.12** on Streamlit Community Cloud, not 3.11 | `app/requirements.txt` pins the versions the models were pickled with (numpy 2.5.4, scipy 1.18.1, xgboost 3.4.1, scikit-learn 1.9.1); numpy, scipy and xgboost have no Python 3.11 builds at those versions (checked with `pip download --python-version`). Pinning keeps the pickles loading identically |
+| 2 | `.streamlit/config.toml` lives at the repo ROOT, not in `app/` | Streamlit reads the theme from the folder where `streamlit run` is started (the repo root, also on Cloud); a file in `app/.streamlit/` would be ignored |
+| 3 | Crests are 128 x 128 PNG (not 64 x 64) and come from the English Wikipedia club infoboxes, not Commons | The 96 px matchup card needs more than 64 px; commons.wikimedia.org is unreachable from here, and these crests are local "non-free" Wikipedia files (trademarked logos), not freely licensed Commons files. **The PNGs are git-ignored** until you decide whether to publish them; without them the app shows coloured 3-letter badges (tested). Sources: `data/app/team_crests/SOURCES.md` (local) |
+| 4 | Hero image is an original football icon (`data/app/hero_ball.svg`), not a downloaded silhouette | No licensing question at all |
+| 5 | The scoreboard shows Poisson expected goals to one decimal ("LIV 1.4 : 1.3 BOU"), plus the most likely exact score underneath | An expected value is a mean, not a score; rounding 1.4 : 1.3 to "1 : 1" would hide that |
+| 6 | The Streamlit header is made transparent, not removed | Removing it also removes the sidebar toggle on phones |
+| 7 | Bookmaker row = the B365 odds of the REAL 2025-26 fixture of that pair (margin removed, Stage 6 method), shown with a note | The models describe each team at the END of the season; the bookmaker odds were set before the real match (August to May). They are not like-for-like, and the page says so. Every ordered pair of 2025-26 teams exists exactly once, so the row is always filled |
+| 8 | Page 1 uses the end-of-2025-26 state: Elo after the last match and last-10 form after the last match, with the league level = the last 380 matches (2.75) | Built by running the project's own feature code over 380 hypothetical fixtures on one day after the season (`app/team_state_builder.py`), so the features match the training code exactly (check_app compares all 380 pairs: max difference 0). The Poisson inputs keep the documented `_rel` label swap, as the saved model expects |
+| 9 | The fan-chart median line uses the team colour, blended toward white when it is too dark for the purple page (Fulham black, Newcastle, Tottenham, Chelsea) | Black on dark purple is invisible |
+| 10 | The team state and the Season Table are built from 2025-26 results; the app itself reads no score column | `check_app.py` scans the runtime files for raw-data names and score columns |
